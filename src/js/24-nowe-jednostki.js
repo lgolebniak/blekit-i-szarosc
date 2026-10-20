@@ -17,11 +17,9 @@ Object.assign(KD,{
     status:u=>u.furyT>0?'FURIA!':u.tiredT>0?`Zmęczeni (${Math.ceil(u.tiredT)} s)`:'A: furia – szarża'},
   gcav:{base:'cav',men:4,name:'Jazda galijska',unit:'Jazda galijska',pick:'y',pos:[72,'cav'],ai:'cav',beh:'acwSabre',label:'Jeźdźcy'},
   ppk:{base:'inf',men:2,name:'Rusznica ppanc',unit:'Rusznica ppanc',pick:'x',pos:[130,392],ai:'ppk',beh:'ppk',label:'Obsługa',init:u=>{u.reloadMax=3;},slots:(u,n)=>{const d=clDir(u.side);return[[4*d,0],[-4*d,7]].slice(0,n);},
-    status:u=>u.reload>0?'Przeładowanie':'A: strzał przeciwpancerny'}
+    status:u=>u.coneOn?'SKOS – drążek góra–dół, puść A':u.reload>0?'Przeładowanie':'A: strzał · trzymaj = skos'}
 });
 SPEC.ele={men:1,spd:20,r:14,name:'Słoń',unit:'Słoń'};
-KD.tank.init=u=>{u.reloadMax=3.2;u.track=false;u.hd=u.side===0?0:Math.PI;};
-KD.tank.status=u=>`${u.reload>0?'Ładowanie działa':'A: działo'} · RT: km · lekkie wychylenie = obrót`;
 
 /* --- zachowania --- */
 const _BEHleg=BEH.leg;
@@ -58,13 +56,14 @@ BEH.ele=function(u,dt,I){const dir=clDir(u.side);let vx=0,vy=0;u.moving=false;
       for(const m of e.men)if(m.alive&&dist(m.x,m.y,u.x,u.y)<10&&R()<rate*dt)killMan(e,m,'trample');}}
   if(u.panicT>0&&(u.x<-10||u.x>W+10)){u.gone=true;msg(u.side,`${unitName(u)} uciekł z pola bitwy.`);}
   clCrew(u,false,dt);};
-BEH.ppk=function(u,dt,I){const sp=24*(u.supT>0?.4:1);clMoveMen(u,I.x*sp,I.y*sp,dt,false,2,I.hum);
-  if(I.Ap&&I.bat){if(u.reload>0){if(I.hum)AU.bad();}else if(useShot(u)){const g=u.men.find(m=>m.alive),dir=clDir(u.side);u.reload=3;u.firedT=3;
-    const b={x:g.x+dir*8,y:g.y,vx:dir*700,vy:0,left:420,side:u.side,src:u.key,kind:'atr',pk:.75};b.ap=bb=>{const tr=420-bb.left;return tr<150?.3:.15;};bullets.push(b);
+BEH.ppk=function(u,dt,I){const sp=24*(u.supT>0?.4:1),a=coneFire(u,I,dt);if(I.A&&I.bat)clMoveMen(u,0,0,dt,false,2,I.hum);else clMoveMen(u,I.x*sp,I.y*sp,dt,false,2,I.hum);
+  if(a!==null){if(u.reload>0){if(I.hum)AU.bad();}else if(useShot(u)){const g=u.men.find(m=>m.alive),[cx,cy]=coneVec(u,a),dir=clDir(u.side);u.reload=3;u.firedT=3;
+    const b={x:g.x+cx*8,y:g.y+cy*8,vx:cx*700,vy:cy*700,left:420,side:u.side,src:u.key,kind:'atr',pk:.75};b.ap=bb=>{const tr=420-bb.left;return tr<150?.3:.15;};bullets.push(b);
     parts.push({k:'flash',x:g.x+dir*10,y:g.y-3,life:0,max:.06});addSmoke(g.x+dir*10,g.y-3,1,false);AU.musket(u.x,2);G.stats[u.side].shots++;}}};
-// czołg: kadłub się obraca, działo strzela w kierunku jazdy; lekkie wychylenie = obrót w miejscu
+// czołg: jeździ w każdą stronę (kadłub obraca się za drążkiem); przy celowaniu sam obraca się w kierunek strzału
 BEH.tank=function(u,dt,I){const{x,y}=I,mag=Math.min(1,Math.hypot(x,y));u.moving=false;if(u.hd===undefined)u.hd=u.side===0?0:Math.PI;
-  if(mag>.25){const want=Math.atan2(y,x);let d=angDiff(u.hd,want),rev=false;if(Math.abs(d)>2.4){rev=true;d=angDiff(u.hd,want+Math.PI);}
+  if(u.tAim)u.hd+=clamp(angDiff(u.hd,tankAimH(u)),-1.8*dt,1.8*dt);
+  else if(mag>.25){const want=Math.atan2(y,x);let d=angDiff(u.hd,want),rev=false;if(Math.abs(d)>2.4){rev=true;d=angDiff(u.hd,want+Math.PI);}
     u.hd+=clamp(d,-1.3*dt,1.3*dt);
     if(!u.track&&mag>.6&&Math.cos(d)>.7&&!u.aiming){const pf=passF('tank',u.x,u.y),f=pf>0?pf:.5,sp=(rev?-12:26)*f*mag;
       const ok=(X,Y)=>{const t=tAt(X,Y);if(t===T.WATER)return I.hum;return passF('tank',X,Y)>0;};

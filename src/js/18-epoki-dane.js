@@ -24,13 +24,13 @@ const KD={
     init:u=>{u.fixedElev=60;u.minR=150;u.maxR=620;u.reloadBase=10;u.noPowder=true;u.projKind='stone';u.aimSpd=240;}},
   // --- Wrzesień 1939 ---
   rif:{base:'inf',men:6,name:'Piechota',unit:'Pluton',pick:'x',pos:[165,270],ai:'flat',beh:'rif',label:'Żołnierze',range:230,gren:true,init:u=>{u.reloadMax=1.7;},
-    status:u=>`${u.supT>0?'PRZYGWOŻDŻENI · ':''}${u.reload>0?'Przeładowanie':'A: ogień'} · RT: granat${u.cd2>0?` (${Math.ceil(u.cd2)} s)`:''}`},
+    status:u=>`${u.supT>0?'PRZYGWOŻDŻENI · ':''}${u.coneOn?'SKOS – drążek góra–dół, puść A':u.reload>0?'Przeładowanie':'A: ogień · trzymaj = skos'} · RT: granat${u.cd2>0?` (${Math.ceil(u.cd2)} s)`:''}`},
   mg:{base:'inf',men:3,name:'Ckm',unit:'Drużyna ckm',pick:'x',pos:[110,150],ai:'mg',beh:'mg',label:'Obsługa',slots:mgSlots,init:u=>{u.mgY=0;u.heat=0;},
-    status:u=>u.over?'Lufa przegrzana – czekaj':u.firing?'SERIA – drążek góra/dół prowadzi ogień':'Trzymaj A = seria'},
+    status:u=>u.over?'Lufa przegrzana – czekaj':u.firing?'SERIA – drążek sieje na boki':'Trzymaj A = seria'},
   tank:{base:'tank',men:1,name:'Czołg',unit:'Czołg',pick:'y',pos:[84,400],ai:'tank',beh:'tank',label:'Pancerz',init:u=>{u.reloadMax=3.2;u.track=false;},
     status:u=>`${u.reload>0?'Ładowanie działa':'A: działo'} · RT: km`},
   at:{base:'art',men:3,name:'Działo ppanc',unit:'Działo ppanc',pick:'b',pos:[44,170],ai:'artFlat',beh:'at',label:'Obsługa',init:u=>{u.reloadMax=2.6;u.maxR=820;},
-    status:u=>u.reload>0?'Ładowanie':'A: strzał przeciwpancerny na wprost'},
+    status:u=>u.coneOn?'SKOS – drążek góra–dół, puść A':u.reload>0?'Ładowanie':'A: strzał · trzymaj = skos'},
   mor:{base:'art',men:2,name:'Moździerz',unit:'Moździerz',pick:'b',pos:[44,370],ai:'artArc',beh:'acwCannon',label:'Obsługa',mor:true,
     init:u=>{u.fixedElev=70;u.minR=90;u.maxR=600;u.reloadBase=4.5;u.projKind='mshell';u.ammo2='he';u.aimSpd=300;},
     status:u=>acwStatus(u)+` · ${u.ammo2==='smoke'?'DYM':'odłamkowy'} (RT)`}

@@ -1072,8 +1072,9 @@ function clVolley(u,o={}){if(u.reload>0||u.pendVol)return false;const rl=o.reloa
   const dl=o.delay!==undefined?o.delay:G.rules!=='classic'?0:o.kind==='pilum'||o.kind==='jav'?.2:o.kind==='rifle'?.25:.35;
   if(dl>0){u.pendVol={o,t:dl};AU.tone(900,.04,'square',.03);return true;}doVolley(u,o);return true;}
 function doVolley(u,o){const rg=o.range||CLS.inf.range;u.firedT=3;const dir=clDir(u.side);let k=0;
-  for(const m of u.men){if(!m.alive||(o.who&&!o.who(m)))continue;k++;const bx=m.x+dir*7;
-    bullets.push({x:bx,y:m.y,vx:dir*(o.spd||300),vy:0,left:rg*(1+.15*hAt(m.x,m.y)),side:u.side,src:u.key,wall:false,kind:o.kind||'musket',pk:o.pk||.85});
+  const ca=Math.cos(o.ang||0),sa=Math.sin(o.ang||0),sp=o.spd||300;
+  for(const m of u.men){if(!m.alive||(o.who&&!o.who(m)))continue;k++;const bx=m.x+dir*7*ca;
+    bullets.push({x:bx,y:m.y+7*sa,vx:dir*sp*ca,vy:sp*sa,left:rg*(1+.15*hAt(m.x,m.y)),side:u.side,src:u.key,wall:false,kind:o.kind||'musket',pk:o.pk||.85});
     if(!o.noPowder){parts.push({k:'flash',x:bx,y:m.y-8,life:0,max:.07});addSmoke(bx,m.y-8,1,false);}}
   G.stats[u.side].shots+=k;if(o.noPowder)AU.burst(.25,1800,'bandpass',1,.2,AU.pan(u.x));else AU.musket(u.x,k);return true;}
 function isFront(e,fromX){return(fromX-e.x)*clDir(e.side)>0;}
@@ -1295,7 +1296,8 @@ function clGround(){if(G.state==='deploy'){ctx.globalAlpha=.13;ctx.fillStyle=SID
   if(u.type==='art'||u.type==='tank'||u.type==='ele'){y0=Math.min(y0,u.y);y1=Math.max(y1,u.y);}
   if(x0>1e8||y0>1e8)continue;ctx.save();ctx.strokeStyle=S.ui;ctx.globalAlpha=hum?.55+.35*Math.sin(G.t*6):.4;ctx.setLineDash(hum?[3,3]:[1,4]);
   ctx.beginPath();ctx.ellipse((x0+x1)/2,(y0+y1)/2,Math.max(4,(x1-x0)/2+12),Math.max(4,(y1-y0)/2+8),0,0,TAU);ctx.stroke();ctx.setLineDash([]);
-  if(kd.ai==='flat'&&hum&&u.reload<=0){const rg=kd.range||CLS.inf.range;ctx.globalAlpha=.18;ctx.fillStyle=S.ui;const dir=clDir(p);for(const m of u.men)if(m.alive)ctx.fillRect(Math.round(dir>0?m.x+8:m.x-8-rg),Math.round(m.y),rg,1);}
+  if(hum&&(u.coneOn||u.tAim))coneLines(u,S);
+  if(kd.ai==='flat'&&hum&&u.reload<=0&&!u.coneOn){const rg=kd.range||CLS.inf.range;ctx.globalAlpha=.18;ctx.fillStyle=S.ui;const dir=clDir(p);for(const m of u.men)if(m.alive)ctx.fillRect(Math.round(dir>0?m.x+8:m.x-8-rg),Math.round(m.y),rg,1);}
   if(u.key==='mg'&&hum&&u.firing){const g=u.men.find(m=>m.alive);if(g){const dir=clDir(p);ctx.globalAlpha=.25;ctx.strokeStyle=S.ui;ctx.beginPath();ctx.moveTo(g.x+dir*8,g.y);ctx.lineTo(g.x+dir*380,g.y+u.mgY);ctx.stroke();}}
   ctx.restore();}}
 const BULLET_LOOK={musket:['#fff3c4',2,1],rifle:['#fff3c4',2,1],mg:['#ffe070',3,1],pilum:['#6a4a2a',6,1],bolt:['#4e3520',7,1],shell:['#fff0b0',3,2]};
@@ -1362,13 +1364,13 @@ const KD={
     init:u=>{u.fixedElev=60;u.minR=150;u.maxR=620;u.reloadBase=10;u.noPowder=true;u.projKind='stone';u.aimSpd=240;}},
   // --- Wrzesień 1939 ---
   rif:{base:'inf',men:6,name:'Piechota',unit:'Pluton',pick:'x',pos:[165,270],ai:'flat',beh:'rif',label:'Żołnierze',range:230,gren:true,init:u=>{u.reloadMax=1.7;},
-    status:u=>`${u.supT>0?'PRZYGWOŻDŻENI · ':''}${u.reload>0?'Przeładowanie':'A: ogień'} · RT: granat${u.cd2>0?` (${Math.ceil(u.cd2)} s)`:''}`},
+    status:u=>`${u.supT>0?'PRZYGWOŻDŻENI · ':''}${u.coneOn?'SKOS – drążek góra–dół, puść A':u.reload>0?'Przeładowanie':'A: ogień · trzymaj = skos'} · RT: granat${u.cd2>0?` (${Math.ceil(u.cd2)} s)`:''}`},
   mg:{base:'inf',men:3,name:'Ckm',unit:'Drużyna ckm',pick:'x',pos:[110,150],ai:'mg',beh:'mg',label:'Obsługa',slots:mgSlots,init:u=>{u.mgY=0;u.heat=0;},
-    status:u=>u.over?'Lufa przegrzana – czekaj':u.firing?'SERIA – drążek góra/dół prowadzi ogień':'Trzymaj A = seria'},
+    status:u=>u.over?'Lufa przegrzana – czekaj':u.firing?'SERIA – drążek sieje na boki':'Trzymaj A = seria'},
   tank:{base:'tank',men:1,name:'Czołg',unit:'Czołg',pick:'y',pos:[84,400],ai:'tank',beh:'tank',label:'Pancerz',init:u=>{u.reloadMax=3.2;u.track=false;},
     status:u=>`${u.reload>0?'Ładowanie działa':'A: działo'} · RT: km`},
   at:{base:'art',men:3,name:'Działo ppanc',unit:'Działo ppanc',pick:'b',pos:[44,170],ai:'artFlat',beh:'at',label:'Obsługa',init:u=>{u.reloadMax=2.6;u.maxR=820;},
-    status:u=>u.reload>0?'Ładowanie':'A: strzał przeciwpancerny na wprost'},
+    status:u=>u.coneOn?'SKOS – drążek góra–dół, puść A':u.reload>0?'Ładowanie':'A: strzał · trzymaj = skos'},
   mor:{base:'art',men:2,name:'Moździerz',unit:'Moździerz',pick:'b',pos:[44,370],ai:'artArc',beh:'acwCannon',label:'Obsługa',mor:true,
     init:u=>{u.fixedElev=70;u.minR=90;u.maxR=600;u.reloadBase=4.5;u.projKind='mshell';u.ammo2='he';u.aimSpd=300;},
     status:u=>acwStatus(u)+` · ${u.ammo2==='smoke'?'DYM':'odłamkowy'} (RT)`}
@@ -1439,40 +1441,38 @@ BEH.bal=function(u,dt,I){artVert(u,I.y,dt);
   clCrew(u,false,dt);};
 
 /* ================= WRZESIEŃ 1939: zachowania ================= */
-BEH.rif=function(u,dt,I){const{x,y}=I,sp=26*(G.weather==='rain'?.9:1)*(u.supT>0?.4:1);
-  const horiz=Math.abs(x)>.3&&Math.abs(x)>=Math.abs(y),vert=Math.abs(y)>.3&&Math.abs(y)>Math.abs(x);
-  if(horiz){u.s=Math.min(1,u.s+dt*.7);u.colDir=Math.sign(x);}else if(vert)u.s=Math.max(0,u.s-dt*1.1);
-  clMoveMen(u,x*sp,y*sp,dt,false,vert?2.2:horiz?1.2:0,I.hum);
-  if(I.Ap&&I.bat&&!clVolley(u,{reload:1.7,range:230,spd:420,pk:.7,kind:'rifle'})&&I.hum)AU.bad();
+// celowanie w stożku ±45°: krótkie A = strzał na wprost, przytrzymane A = drążek góra–dół ustawia skos, puszczenie = strzał
+const CONE=Math.PI/4,CONE_HOLD=.22;
+const coneVec=(u,a)=>[clDir(u.side)*Math.cos(a),Math.sin(a)];
+function coneFire(u,I,dt){if(!I.bat||!I.inp){u.aHold=0;u.coneOn=false;return null;}
+  if(I.A){u.aHold=(u.aHold||0)+dt;if(u.aHold>CONE_HOLD){if(!u.coneOn){u.coneOn=true;u.aimA=0;}u.aimA=clamp(u.aimA+I.y*1.4*dt,-CONE,CONE);}return null;}
+  if(!u.aHold)return null;const a=u.coneOn?u.aimA:0;u.aHold=0;u.coneOn=false;return a;}
+function coneLines(u,S){ctx.save();ctx.strokeStyle=S.ui;ctx.lineWidth=1;
+  const ray=(x,y,a,L,al)=>{const[vx,vy]=coneVec(u,a);ctx.globalAlpha=al;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+vx*L,y+vy*L);ctx.stroke();};
+  if(u.type==='tank'){const L=u.tAim===3?u.aimR:u.aimMax;ray(u.x,u.y,-CONE,70,.3);ray(u.x,u.y,CONE,70,.3);ctx.setLineDash([3,3]);ray(u.x,u.y,u.aimA,L,.85);
+    if(u.tAim===3){const[vx,vy]=coneVec(u,u.aimA);ctx.setLineDash([]);ctx.beginPath();ctx.arc(u.x+vx*L,u.y+vy*L,9,0,TAU);ctx.stroke();}}
+  else{ctx.setLineDash([2,3]);if(u.type==='art')ray(u.x,u.y,u.aimA,320,.6);else for(const m of u.men)if(m.alive)ray(m.x,m.y,u.aimA,u.key==='ppk'?300:230,.4);}
+  ctx.restore();}
+BEH.rif=function(u,dt,I){const{x,y}=I,sp=26*(G.weather==='rain'?.9:1)*(u.supT>0?.4:1),a=coneFire(u,I,dt);
+  if(I.A&&I.bat)clMoveMen(u,0,0,dt,false,1,I.hum);
+  else{const horiz=Math.abs(x)>.3&&Math.abs(x)>=Math.abs(y),vert=Math.abs(y)>.3&&Math.abs(y)>Math.abs(x);
+    if(horiz){u.s=Math.min(1,u.s+dt*.7);u.colDir=Math.sign(x);}else if(vert)u.s=Math.max(0,u.s-dt*1.1);
+    clMoveMen(u,x*sp,y*sp,dt,false,vert?2.2:horiz?1.2:0,I.hum);}
+  if(a!==null&&!clVolley(u,{reload:1.7,range:230,spd:420,pk:.7,kind:'rifle',ang:a})&&I.hum)AU.bad();
   if(I.Rp&&I.bat){if(u.cd2>0){if(I.hum)AU.bad();}else{const dir=clDir(u.side);u.cd2=6;
     projs.push({kind:'gren',x:u.x,y:u.y,sx:u.x+dir*5,sy:u.y,tx:u.x+dir*(70+R()*12),ty:u.y+(R()-.5)*10,t:0,T:.75,H:24,h:0,a:u.fa,bounce:0,side:u.side,src:u.key,hit:new Set(),low:false});}}};
 BEH.mg=function(u,dt,I){const{x,y,A}=I;if(u.over&&u.heat<.35)u.over=false;
   const firing=A&&I.bat&&!u.over;u.firing=firing;if(!firing)u.heat=Math.max(0,(u.heat||0)-dt*.22);
   if(!firing){const sp=15*(u.supT>0?.4:1);clMoveMen(u,x*sp,y*sp,dt,false,2,I.hum);u.mgY*=Math.pow(.25,dt);}
-  else{clMoveMen(u,0,0,dt,false,1,I.hum);u.mgY=clamp((u.mgY||0)+y*80*dt,-100,100);u.heat+=dt*.28;
+  else{clMoveMen(u,0,0,dt,false,1,I.hum);u.mgY=clamp((u.mgY||0)+y*240*dt,-380,380);u.heat+=dt*.28;
     if(u.heat>=1){u.over=true;msg(u.side,`${unitName(u)}: lufa przegrzana!`);}
     u.mgT=(u.mgT||0)-dt;if(u.mgT<=0){u.mgT=.085;const g=u.men.find(m=>m.alive),dir=clDir(u.side);
-      if(g){const L=380,sp=380;bullets.push({x:g.x+dir*9,y:g.y,vx:dir*sp,vy:u.mgY*sp/L+(R()-.5)*10,left:L,side:u.side,src:u.key,kind:'mg',pk:.3,sup:true});
+      if(g){const L=380,sp=380,a=Math.atan2(u.mgY,L);bullets.push({x:g.x+dir*9,y:g.y,vx:dir*sp*Math.cos(a),vy:sp*Math.sin(a)+(R()-.5)*10,left:L,side:u.side,src:u.key,kind:'mg',pk:.3,sup:true});
         parts.push({k:'flash',x:g.x+dir*10,y:g.y-3,life:0,max:.04});if(R()<.5)AU.burst(.06,1900,'bandpass',1,.13,AU.pan(u.x));if(R()<.25)addSmoke(g.x+dir*9,g.y-3,1,false);G.stats[u.side].shots++;u.firedT=3;}}}};
-BEH.tank=function(u,dt,I){const{x,y}=I,dir=clDir(u.side);u.moving=false;
-  if(!u.track&&(Math.abs(x)>.15||Math.abs(y)>.15)){const pf=passF('tank',u.x,u.y),f=pf>0?pf:.5;
-    const ok=(X,Y)=>{const t=tAt(X,Y);if(t===T.WATER)return I.hum;return passF('tank',X,Y)>0;};
-    const nx=clamp(u.x+x*26*f*dt,10,W-10),ny=clamp(u.y+y*20*f*dt,34,H-12);
-    if(ok(nx,ny)){u.x=nx;u.y=ny;u.moving=true;}else if(ok(nx,u.y)){u.x=nx;u.moving=true;}else if(ok(u.x,ny)){u.y=ny;u.moving=true;}
-    if(u.moving){u.anim=(u.anim||0)+dt*10;if(R()<.3)dustAt(u.x-dir*12,u.y,1,'120,105,80');}}
-  if(I.Ap&&I.bat){if(u.reload>0){if(I.hum)AU.bad();}
-    else{u.reload=3.2;u.firedT=3;u.recoil=1;const bx=u.x+dir*18;
-      bullets.push({x:bx,y:u.y,vx:dir*480,vy:0,left:760,side:u.side,src:u.key,kind:'shell',pk:.6,boom:10,bk:.75,ap:.35});
-      parts.push({k:'flash',x:bx,y:u.y-12,life:0,max:.1,big:1});addSmoke(bx,u.y-12,3,true);AU.cannon(u.x);G.shake=Math.max(G.shake,2);G.stats[u.side].shots++;
-      const hp=humanOf(u.side);if(hp>=0)rumble(hp,.6,.3,200);}}
-  if(I.R&&I.bat){u.mgT=(u.mgT||0)-dt;if(u.mgT<=0){u.mgT=.14;bullets.push({x:u.x+dir*12,y:u.y,vx:dir*360,vy:(R()-.5)*18,left:320,side:u.side,src:u.key,kind:'mg',pk:.25,sup:true});
-      parts.push({k:'flash',x:u.x+dir*12,y:u.y-7,life:0,max:.04});if(R()<.5)AU.burst(.05,1900,'bandpass',1,.1,AU.pan(u.x));}}
-  if(tAt(u.x,u.y)===T.BRIDGE&&nearBroken(u.x,u.y)&&R()<dt*.9){breakBridge(u.x,u.y,u.side);msg(u.side,`${unitName(u)}: most załamał się pod czołgiem!`);}
-  clCrew(u,false,dt);};
-BEH.at=function(u,dt,I){artVert(u,I.y,dt);
-  if(I.Ap&&I.bat){if(u.reload>0||u.setup>0){if(I.hum)AU.bad();}
-    else if(useShot(u)){const dir=clDir(u.side),bx=u.x+dir*14;u.reload=2.6;u.firedT=3;u.recoil=1;
-      const b={x:bx,y:u.y,vx:dir*520,vy:0,left:820,side:u.side,src:u.key,kind:'shell',pk:.6,boom:7,bk:.6};b.ap=bb=>{const tr=820-bb.left;return tr<300?.75:tr<550?.45:.25;};bullets.push(b);
+BEH.at=function(u,dt,I){const a=coneFire(u,I,dt);if(!(I.A&&I.bat))artVert(u,I.y,dt);
+  if(a!==null){if(u.reload>0||u.setup>0){if(I.hum)AU.bad();}
+    else if(useShot(u)){const[cx,cy]=coneVec(u,a),bx=u.x+cx*14;u.reload=2.6;u.firedT=3;u.recoil=1;
+      const b={x:bx,y:u.y+cy*14,vx:cx*520,vy:cy*520,left:820,side:u.side,src:u.key,kind:'shell',pk:.6,boom:7,bk:.6};b.ap=bb=>{const tr=820-bb.left;return tr<300?.75:tr<550?.45:.25;};bullets.push(b);
       parts.push({k:'flash',x:bx,y:u.y-6,life:0,max:.08,big:1});addSmoke(bx,u.y-6,2,false);AU.cannon(u.x);G.shake=Math.max(G.shake,1.2);G.stats[u.side].shots++;}}
   clCrew(u,false,dt);};
 function nearBroken(x,y){if(!MAP.broken)return false;const tx=Math.floor(x/TS),ty=Math.floor(y/TS);for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)if(MAP.broken.has((ty+dy)*GW+tx+dx))return true;return false;}
@@ -1663,11 +1663,9 @@ Object.assign(KD,{
     status:u=>u.furyT>0?'FURIA!':u.tiredT>0?`Zmęczeni (${Math.ceil(u.tiredT)} s)`:'A: furia – szarża'},
   gcav:{base:'cav',men:4,name:'Jazda galijska',unit:'Jazda galijska',pick:'y',pos:[72,'cav'],ai:'cav',beh:'acwSabre',label:'Jeźdźcy'},
   ppk:{base:'inf',men:2,name:'Rusznica ppanc',unit:'Rusznica ppanc',pick:'x',pos:[130,392],ai:'ppk',beh:'ppk',label:'Obsługa',init:u=>{u.reloadMax=3;},slots:(u,n)=>{const d=clDir(u.side);return[[4*d,0],[-4*d,7]].slice(0,n);},
-    status:u=>u.reload>0?'Przeładowanie':'A: strzał przeciwpancerny'}
+    status:u=>u.coneOn?'SKOS – drążek góra–dół, puść A':u.reload>0?'Przeładowanie':'A: strzał · trzymaj = skos'}
 });
 SPEC.ele={men:1,spd:20,r:14,name:'Słoń',unit:'Słoń'};
-KD.tank.init=u=>{u.reloadMax=3.2;u.track=false;u.hd=u.side===0?0:Math.PI;};
-KD.tank.status=u=>`${u.reload>0?'Ładowanie działa':'A: działo'} · RT: km · lekkie wychylenie = obrót`;
 
 /* --- zachowania --- */
 const _BEHleg=BEH.leg;
@@ -1704,13 +1702,14 @@ BEH.ele=function(u,dt,I){const dir=clDir(u.side);let vx=0,vy=0;u.moving=false;
       for(const m of e.men)if(m.alive&&dist(m.x,m.y,u.x,u.y)<10&&R()<rate*dt)killMan(e,m,'trample');}}
   if(u.panicT>0&&(u.x<-10||u.x>W+10)){u.gone=true;msg(u.side,`${unitName(u)} uciekł z pola bitwy.`);}
   clCrew(u,false,dt);};
-BEH.ppk=function(u,dt,I){const sp=24*(u.supT>0?.4:1);clMoveMen(u,I.x*sp,I.y*sp,dt,false,2,I.hum);
-  if(I.Ap&&I.bat){if(u.reload>0){if(I.hum)AU.bad();}else if(useShot(u)){const g=u.men.find(m=>m.alive),dir=clDir(u.side);u.reload=3;u.firedT=3;
-    const b={x:g.x+dir*8,y:g.y,vx:dir*700,vy:0,left:420,side:u.side,src:u.key,kind:'atr',pk:.75};b.ap=bb=>{const tr=420-bb.left;return tr<150?.3:.15;};bullets.push(b);
+BEH.ppk=function(u,dt,I){const sp=24*(u.supT>0?.4:1),a=coneFire(u,I,dt);if(I.A&&I.bat)clMoveMen(u,0,0,dt,false,2,I.hum);else clMoveMen(u,I.x*sp,I.y*sp,dt,false,2,I.hum);
+  if(a!==null){if(u.reload>0){if(I.hum)AU.bad();}else if(useShot(u)){const g=u.men.find(m=>m.alive),[cx,cy]=coneVec(u,a),dir=clDir(u.side);u.reload=3;u.firedT=3;
+    const b={x:g.x+cx*8,y:g.y+cy*8,vx:cx*700,vy:cy*700,left:420,side:u.side,src:u.key,kind:'atr',pk:.75};b.ap=bb=>{const tr=420-bb.left;return tr<150?.3:.15;};bullets.push(b);
     parts.push({k:'flash',x:g.x+dir*10,y:g.y-3,life:0,max:.06});addSmoke(g.x+dir*10,g.y-3,1,false);AU.musket(u.x,2);G.stats[u.side].shots++;}}};
-// czołg: kadłub się obraca, działo strzela w kierunku jazdy; lekkie wychylenie = obrót w miejscu
+// czołg: jeździ w każdą stronę (kadłub obraca się za drążkiem); przy celowaniu sam obraca się w kierunek strzału
 BEH.tank=function(u,dt,I){const{x,y}=I,mag=Math.min(1,Math.hypot(x,y));u.moving=false;if(u.hd===undefined)u.hd=u.side===0?0:Math.PI;
-  if(mag>.25){const want=Math.atan2(y,x);let d=angDiff(u.hd,want),rev=false;if(Math.abs(d)>2.4){rev=true;d=angDiff(u.hd,want+Math.PI);}
+  if(u.tAim)u.hd+=clamp(angDiff(u.hd,tankAimH(u)),-1.8*dt,1.8*dt);
+  else if(mag>.25){const want=Math.atan2(y,x);let d=angDiff(u.hd,want),rev=false;if(Math.abs(d)>2.4){rev=true;d=angDiff(u.hd,want+Math.PI);}
     u.hd+=clamp(d,-1.3*dt,1.3*dt);
     if(!u.track&&mag>.6&&Math.cos(d)>.7&&!u.aiming){const pf=passF('tank',u.x,u.y),f=pf>0?pf:.5,sp=(rev?-12:26)*f*mag;
       const ok=(X,Y)=>{const t=tAt(X,Y);if(t===T.WATER)return I.hum;return passF('tank',X,Y)>0;};
@@ -1885,7 +1884,7 @@ const AUTO={
         bullets.push(b);parts.push({k:'flash',x:g.x+dir*10,y:g.y-3,life:0,max:.06});AU.musket(u.x,2);G.stats[u.side].shots++;return;}}},
   mg(u,dt){if(u.over){u.firing=false;return;}const g=u.men.find(m=>m.alive);if(!g)return;const rg=380*AUTO_RANGE,dir=clDir(u.side);let best=null,bd=1e9;
     for(const e of units){if(e.side===u.side||e.dead||e.gone||e.type!=='inf'||e.state==='enter')continue;for(const o of e.men){if(!o.alive)continue;const dx=(o.x-g.x)*dir;
-      if(dx>20&&dx<rg){const d=dx+Math.abs(o.y-g.y)*2;if(d<bd){bd=d;best=o;}}}}
+      if(dx>20&&dx<rg&&Math.abs(o.y-g.y)<=dx){const d=dx+Math.abs(o.y-g.y)*2;if(d<bd){bd=d;best=o;}}}}
     if(!best){u.firing=false;return;}u.firing=true;const dx=Math.max(40,(best.x-g.x)*dir),want=(best.y-g.y)*380/dx;u.mgY+=clamp(want-(u.mgY||0),-90*dt,90*dt);
     u.heat=(u.heat||0)+dt*.5;if(u.heat>=1){u.over=true;u.firing=false;return;}
     u.mgT=(u.mgT||0)-dt;if(u.mgT<=0){u.mgT=.1;bullets.push({x:g.x+dir*9,y:g.y,vx:dir*380,vy:u.mgY+(R()-.5)*10,left:rg,side:u.side,src:u.key,kind:'mg',pk:.3,sup:true});
@@ -1933,13 +1932,19 @@ function tshellImpact(p){const t=tAt(p.tx,p.ty);if(t===T.BRIDGE)breakBridge(p.tx
   blast(p.tx,p.ty,12,.8,p.side,p.src);
   for(const e of units)if(e.type==='tank'&&!e.dead&&!e.gone&&dist(e.x,e.y,p.tx,p.ty)<13)tankHit(e,.35,p.side,p.fromX,p.fromY);}
 PROJDRAW.tshell=function(p,x,y){ctx.fillStyle='rgba(0,0,0,.3)';ctx.fillRect(Math.round(x),Math.round(y),2,1);ctx.fillStyle='#fff0b0';ctx.fillRect(Math.round(x)-1,Math.round(y-p.h)-1,3,2);};
-function tankGun(u,dt,I){const can=u.reload<=0&&(u.shots===undefined||u.shots>0);
-  if(I.A&&can){if(!u.aiming){u.aiming=true;u.aimDir=1;u.aimR=u.aimMin;}u.aimR+=u.aimDir*300*dt;
-    if(u.aimR>u.aimMax){u.aimR=u.aimMax;u.aimDir=-1;}if(u.aimR<u.aimMin){u.aimR=u.aimMin;u.aimDir=1;}}
-  else if(u.aiming){u.aiming=false;tankFire(u,u.aimR,true);}
-  else if(I.Ap&&I.hum){AU.bad();if(u.shots===0)noAmmo(u);}}
+// działo czołgu strzela tylko w przód i po skosach (±45°). Etap 1: trzymasz A – drążek góra–dół ustawia kierunek, czołg sam się obraca;
+// puszczasz. Etap 2: drugie A trzymane – pasek odległości (60–460), puszczasz = strzał. Drążek przed drugim A anuluje celowanie.
+const tankAimH=u=>clDir(u.side)>0?u.aimA:Math.PI-u.aimA;
+const relCone=(u,h)=>Math.atan2(Math.sin(h),clDir(u.side)*Math.cos(h));
+function tankGun(u,dt,I){const can=u.reload<=0&&(u.shots===undefined||u.shots>0),st=u.tAim||0;
+  if(!I.inp){u.tAim=0;u.aiming=false;return;}
+  if(st===0){if(I.Ap){if(!can){if(I.hum){AU.bad();if(u.shots===0)noAmmo(u);}return;}u.tAim=1;u.aimA=clamp(relCone(u,u.hd),-CONE,CONE);if(I.hum)AU.ui();}return;}
+  if(st===1){u.aimA=clamp(u.aimA+I.y*1.3*dt,-CONE,CONE);if(!I.A){u.tAim=2;u.tWait=0;}return;}
+  if(st===2){u.tWait+=dt;if(Math.hypot(I.x,I.y)>.6||u.tWait>5){u.tAim=0;return;}if(I.Ap&&can){u.tAim=3;u.aiming=true;u.aimDir=1;u.aimR=u.aimMin;}return;}
+  if(I.A){u.aimR+=u.aimDir*300*dt;if(u.aimR>u.aimMax){u.aimR=u.aimMax;u.aimDir=-1;}if(u.aimR<u.aimMin){u.aimR=u.aimMin;u.aimDir=1;}}
+  else{u.tAim=0;u.aiming=false;u.hd=tankAimH(u);tankFire(u,u.aimR,true);}}
 KD.tank.init=u=>{u.reloadMax=3.2;u.track=false;u.hd=u.side===0?0:Math.PI;u.aimMin=60;u.aimMax=460;};
-KD.tank.status=u=>u.aiming?`Odległość ${Math.round(u.aimR)} kroków – puść A`:`${u.reload>0?'Ładowanie działa':'Trzymaj A = odległość'} · RT: km`;
+KD.tank.status=u=>u.tAim===1?'KIERUNEK: drążek góra–dół, puść A':u.tAim===2?'A: trzymaj = odległość · drążek = anuluj':u.tAim===3?`Odległość ${Math.round(u.aimR)} kroków – puść A`:`${u.reload>0?'Ładowanie działa':'Trzymaj A = kierunek strzału'} · RT: km`;
 // uzupełnianie amunicji: czołg i rusznica w swojej strefie, na postoju
 const _eraTick2=eraTick2;
 function eraTick3(dt){_eraTick2(dt);if(!G.ammoLimit)return;
@@ -1949,7 +1954,7 @@ function eraTick3(dt){_eraTick2(dt);if(!G.ammoLimit)return;
 // samoobrona czołgu i rusznicy z limitem amunicji
 AUTO.tank=function(u,dt){const c=Math.cos(u.hd||0),s=Math.sin(u.hd||0);
   for(const e of units){if(e.side===u.side||e.dead||e.gone||e.state==='enter')continue;const d=dist(u.x,u.y,e.x,e.y),da=Math.abs(angDiff(u.hd||0,Math.atan2(e.y-u.y,e.x-u.x)));
-    if(u.reload<=0&&!u.aiming&&d<u.aimMax*AUTO_RANGE&&d>u.aimMin&&da<.06&&(u.shots===undefined||u.shots>0))tankFire(u,d,false);
+    if(u.reload<=0&&!u.aiming&&!u.tAim&&d<u.aimMax*AUTO_RANGE&&d>u.aimMin&&da<.06&&Math.abs(relCone(u,u.hd))<=CONE&&(u.shots===undefined||u.shots>0))tankFire(u,d,false);
     if(e.type==='inf'&&d<320*AUTO_RANGE&&da<.2){u.mgT=(u.mgT||0)-dt;if(u.mgT<=0){u.mgT=.14;bullets.push({x:u.x+c*12,y:u.y+s*6,vx:c*360,vy:s*360+(R()-.5)*18,left:320*AUTO_RANGE,side:u.side,src:u.key,kind:'mg',pk:.25,sup:true});
       if(R()<.5)AU.burst(.05,1900,'bandpass',1,.1,AU.pan(u.x));}}}};
 const _autoPpk=AUTO.ppk;AUTO.ppk=function(u,dt){if(u.shots===0)return;const before=u.reload;_autoPpk(u,dt);if(u.shots!==undefined&&u.reload>before)u.shots--;};
@@ -1957,11 +1962,12 @@ const _autoPpk=AUTO.ppk;AUTO.ppk=function(u,dt){if(u.shots===0)return;const befo
 CPU.tank=function(u,dt,foes,dir,c){
   if(u.shots===0){const hx=u.side===0?DEPLOY-60:W-DEPLOY+60;if(Math.abs(u.x-hx)>20){const v=steer(u,hx,u.y,dt);return{x:v[0],y:v[1],A:false};}return idle0;}
   const t=nearestBy(foes.filter(f=>f.key==='at'||f.key==='mg'||f.key==='rif'||f.key==='ppk'),u)||nearestBy(foes,u),d=dist(u.x,u.y,t.x,t.y);
-  if(u.aiming){const want=clamp(d*(1+c.aimErr),u.aimMin+5,u.aimMax-3);return{x:0,y:0,A:u.aimR<want||u.aimDir<0};}
-  if(d>u.aimMax*.9&&!u.track){const v=steer(u,t.x-dir*300,t.y,dt);return{x:v[0],y:v[1],A:false};}
-  const want=Math.atan2(t.y-u.y,t.x-u.x),da=Math.abs(angDiff(u.hd,want));
-  if(da<.06&&u.reload<=0){c.aimErr=(R()-.5)*.1;return{x:0,y:0,A:true,R:t.type==='inf'&&d<300};}
-  return{x:Math.cos(want)*.45,y:Math.sin(want)*.45,A:false,R:t.type==='inf'&&da<.25&&d<300};};
+  const h=Math.atan2(t.y-u.y,t.x-u.x),a=relCone(u,h),mg=t.type==='inf'&&d<300&&Math.abs(angDiff(u.hd,h))<.25,st=u.tAim||0;
+  if(st===3){const want=clamp(d*(1+c.aimErr),u.aimMin+5,u.aimMax-3);return{x:0,y:0,A:u.aimR<want||u.aimDir<0};}
+  if(st===1){const da=clamp(a,-CONE,CONE)-u.aimA;return Math.abs(da)>.02?{x:0,y:clamp(da*10,-1,1),A:true}:idle0;}
+  if(st===2){if(Math.abs(angDiff(u.hd,tankAimH(u)))<.1){c.aimErr=(R()-.5)*.1;return{x:0,y:0,A:true};}return idle0;}
+  if((d>u.aimMax*.9||Math.abs(a)>CONE)&&!u.track){const v=steer(u,t.x-dir*300,t.y,dt);return{x:v[0],y:v[1],A:false,R:mg};}
+  return{x:0,y:0,A:u.reload<=0&&Math.abs(a)<=CONE,R:mg};};
 const idle0={x:0,y:0,A:false};
 
 /* ================= PRZEWAGI (kamień–papier–nożyce), UNIKI W RUCHU, MĄDRZEJSZY KOMPUTER ================= */
@@ -2055,8 +2061,8 @@ function drawHelp(){panel(40,40,W-80,H-80,BRASS);const pg=G.helpPage||0;
     ['A','Legion: zmiana szyku linia → żółw → klin → koło · Łucznicy: trzymaj = odległość, puść = salwa · Jazda: cios · Balista: bełt · Onager: trzymaj = siła','F / Spacja','Enter / K'],
     ['RT','Legion: rzut pilum (tylko linia i klin) – pilum rozbija żółwia','V','M'],
     ['Kartagina / Galowie','Libijczycy: A = linia ↔ falanga · procarze jak łucznicy · Numidowie: ruch w każdą stronę, A = oszczepy · słonie: A = szarża, ranne wpadają w panikę · Galowie: A = furia, potem zmęczenie','',''],['X / Y / B','Legion i łucznicy / jazda / balista i onager','R/T/G','J/I/L'],['LB / RB','Poprzedni / następny oddział','Q / E','U / O'],['Start / drążek','Pauza','Esc / 1','Backspace / 0']],
-   ww2:[['Lewy drążek','Wszyscy idą równolegle. Czołg obraca kadłub w stronę drążka (lekkie wychylenie = obrót w miejscu) i strzela tam, gdzie patrzy. Działo i moździerz tylko góra–dół. Ckm prowadzi serię drążkiem góra–dół.','WASD','Strzałki'],
-    ['A','Piechota: ogień · Ckm: trzymaj = seria (przegrzewa się) · Rusznica: strzał ppanc · Czołg: trzymaj = odległość (do 460), puść = strzał · Działo ppanc: strzał · Moździerz: trzymaj = siła','F / Spacja','Enter / K'],
+   ww2:[['Lewy drążek','Wszyscy idą równolegle. Czołg jeździ w każdą stronę, ale strzela tylko w przód i po skosach. Działo i moździerz tylko góra–dół.','WASD','Strzałki'],
+    ['A','Krótko = strzał na wprost, trzymaj = skos do 45° (drążek góra–dół), puść = strzał · Ckm: trzymaj = seria, drążek sieje na boki · Czołg: trzymaj = kierunek, drugie A = odległość · Moździerz: trzymaj = siła','F / Spacja','Enter / K'],
     ['RT','Piechota: granat · Czołg: karabin maszynowy · Moździerz: odłamkowy / dymny','V','M'],['X / Y / B','Piechota, ckm, rusznica / czołg / działo i moździerz','R/T/G','J/I/L'],['LB / RB','Poprzedni / następny oddział','Q / E','U / O'],['Start / drążek','Rozstawienie: gotowi · w bitwie: pauza','Esc / 1','Backspace / 0'],
     ['Samoobrona','Oddziały bez sterowania same strzelają w obronie do 75% zasięgu: piechota, ckm, rusznica, czołg. Moździerz i działo tylko pod Twoim sterowaniem. Ostrzał na wprost niszczy worki, ruiny, domy i murki – granat i moździerz lecą nad nimi.','','']],
    pl17:[['Lewy drążek','Husaria w stępie: każdy kierunek. W szarży: góra–dół, w tył = zwrot. Pancerni, spahisi: jak szabliści. Rajtaria: każdy kierunek. Działa: góra–dół.','WASD','Strzałki'],

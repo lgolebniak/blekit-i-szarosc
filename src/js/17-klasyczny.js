@@ -64,8 +64,9 @@ function clVolley(u,o={}){if(u.reload>0||u.pendVol)return false;const rl=o.reloa
   const dl=o.delay!==undefined?o.delay:G.rules!=='classic'?0:o.kind==='pilum'||o.kind==='jav'?.2:o.kind==='rifle'?.25:.35;
   if(dl>0){u.pendVol={o,t:dl};AU.tone(900,.04,'square',.03);return true;}doVolley(u,o);return true;}
 function doVolley(u,o){const rg=o.range||CLS.inf.range;u.firedT=3;const dir=clDir(u.side);let k=0;
-  for(const m of u.men){if(!m.alive||(o.who&&!o.who(m)))continue;k++;const bx=m.x+dir*7;
-    bullets.push({x:bx,y:m.y,vx:dir*(o.spd||300),vy:0,left:rg*(1+.15*hAt(m.x,m.y)),side:u.side,src:u.key,wall:false,kind:o.kind||'musket',pk:o.pk||.85});
+  const ca=Math.cos(o.ang||0),sa=Math.sin(o.ang||0),sp=o.spd||300;
+  for(const m of u.men){if(!m.alive||(o.who&&!o.who(m)))continue;k++;const bx=m.x+dir*7*ca;
+    bullets.push({x:bx,y:m.y+7*sa,vx:dir*sp*ca,vy:sp*sa,left:rg*(1+.15*hAt(m.x,m.y)),side:u.side,src:u.key,wall:false,kind:o.kind||'musket',pk:o.pk||.85});
     if(!o.noPowder){parts.push({k:'flash',x:bx,y:m.y-8,life:0,max:.07});addSmoke(bx,m.y-8,1,false);}}
   G.stats[u.side].shots+=k;if(o.noPowder)AU.burst(.25,1800,'bandpass',1,.2,AU.pan(u.x));else AU.musket(u.x,k);return true;}
 function isFront(e,fromX){return(fromX-e.x)*clDir(e.side)>0;}
@@ -287,7 +288,8 @@ function clGround(){if(G.state==='deploy'){ctx.globalAlpha=.13;ctx.fillStyle=SID
   if(u.type==='art'||u.type==='tank'||u.type==='ele'){y0=Math.min(y0,u.y);y1=Math.max(y1,u.y);}
   if(x0>1e8||y0>1e8)continue;ctx.save();ctx.strokeStyle=S.ui;ctx.globalAlpha=hum?.55+.35*Math.sin(G.t*6):.4;ctx.setLineDash(hum?[3,3]:[1,4]);
   ctx.beginPath();ctx.ellipse((x0+x1)/2,(y0+y1)/2,Math.max(4,(x1-x0)/2+12),Math.max(4,(y1-y0)/2+8),0,0,TAU);ctx.stroke();ctx.setLineDash([]);
-  if(kd.ai==='flat'&&hum&&u.reload<=0){const rg=kd.range||CLS.inf.range;ctx.globalAlpha=.18;ctx.fillStyle=S.ui;const dir=clDir(p);for(const m of u.men)if(m.alive)ctx.fillRect(Math.round(dir>0?m.x+8:m.x-8-rg),Math.round(m.y),rg,1);}
+  if(hum&&(u.coneOn||u.tAim))coneLines(u,S);
+  if(kd.ai==='flat'&&hum&&u.reload<=0&&!u.coneOn){const rg=kd.range||CLS.inf.range;ctx.globalAlpha=.18;ctx.fillStyle=S.ui;const dir=clDir(p);for(const m of u.men)if(m.alive)ctx.fillRect(Math.round(dir>0?m.x+8:m.x-8-rg),Math.round(m.y),rg,1);}
   if(u.key==='mg'&&hum&&u.firing){const g=u.men.find(m=>m.alive);if(g){const dir=clDir(p);ctx.globalAlpha=.25;ctx.strokeStyle=S.ui;ctx.beginPath();ctx.moveTo(g.x+dir*8,g.y);ctx.lineTo(g.x+dir*380,g.y+u.mgY);ctx.stroke();}}
   ctx.restore();}}
 const BULLET_LOOK={musket:['#fff3c4',2,1],rifle:['#fff3c4',2,1],mg:['#ffe070',3,1],pilum:['#6a4a2a',6,1],bolt:['#4e3520',7,1],shell:['#fff0b0',3,2]};

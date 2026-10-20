@@ -33,7 +33,7 @@ const AUTO={
         bullets.push(b);parts.push({k:'flash',x:g.x+dir*10,y:g.y-3,life:0,max:.06});AU.musket(u.x,2);G.stats[u.side].shots++;return;}}},
   mg(u,dt){if(u.over){u.firing=false;return;}const g=u.men.find(m=>m.alive);if(!g)return;const rg=380*AUTO_RANGE,dir=clDir(u.side);let best=null,bd=1e9;
     for(const e of units){if(e.side===u.side||e.dead||e.gone||e.type!=='inf'||e.state==='enter')continue;for(const o of e.men){if(!o.alive)continue;const dx=(o.x-g.x)*dir;
-      if(dx>20&&dx<rg){const d=dx+Math.abs(o.y-g.y)*2;if(d<bd){bd=d;best=o;}}}}
+      if(dx>20&&dx<rg&&Math.abs(o.y-g.y)<=dx){const d=dx+Math.abs(o.y-g.y)*2;if(d<bd){bd=d;best=o;}}}}
     if(!best){u.firing=false;return;}u.firing=true;const dx=Math.max(40,(best.x-g.x)*dir),want=(best.y-g.y)*380/dx;u.mgY+=clamp(want-(u.mgY||0),-90*dt,90*dt);
     u.heat=(u.heat||0)+dt*.5;if(u.heat>=1){u.over=true;u.firing=false;return;}
     u.mgT=(u.mgT||0)-dt;if(u.mgT<=0){u.mgT=.1;bullets.push({x:g.x+dir*9,y:g.y,vx:dir*380,vy:u.mgY+(R()-.5)*10,left:rg,side:u.side,src:u.key,kind:'mg',pk:.3,sup:true});
