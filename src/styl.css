@@ -1,0 +1,5 @@
+:root{color-scheme:dark;--ground:#0d100e;--brass:#c9a24a}
+html,body{height:100%}
+body{margin:0;background:var(--ground);overflow:hidden;box-sizing:border-box;padding-inline:16px;display:flex;align-items:center;justify-content:center}
+canvas{display:block;cursor:none;touch-action:none;user-select:none;image-rendering:pixelated;image-rendering:crisp-edges;background:#000;box-shadow:0 0 0 1px #2a2f28,0 20px 60px rgba(0,0,0,.6);outline:none}
+canvas:focus-visible{box-shadow:0 0 0 2px var(--brass)}

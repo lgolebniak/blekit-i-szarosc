@@ -1,4 +1,4 @@
-const {chromium}=require(process.env.PW||'playwright');
+const {chromium}=require(process.env.PW||'playwright');require('fs').mkdirSync(require('path').resolve(__dirname,'../zrzuty'),{recursive:true});let blad=0;
 (async()=>{
   const b=await chromium.launch();const pg=await b.newPage({viewport:{width:1280,height:760}});
   const errs=[];pg.on('pageerror',e=>errs.push('PAGEERR '+e.message));pg.on('console',m=>{if(m.type()==='error')errs.push('CONSOLE '+m.text());});
@@ -28,9 +28,9 @@ const {chromium}=require(process.env.PW||'playwright');
         alive:[0,1].map(s=>units.filter(u=>u.side===s&&!u.dead&&!u.gone).map(u=>u.key+':'+u.n+(u.key==='hus'?'k'+u.men.filter(m=>m.alive&&m.kopia).length:'')).join(' ')),
         palisadeTiles:Array.from(MAP.t).filter(x=>x===T.PALISADE).length,fenceTiles:Array.from(MAP.t).filter(x=>x===T.FENCE).length,errs});
       return out;},v);
-    console.log(JSON.stringify(r));
+    console.log(JSON.stringify(r));if(r.errs.length)blad=1;
     if(r.state!=='end'){}
     await pg.screenshot({path:require('path').resolve(__dirname,'../zrzuty')+'/shot_'+v+'.png'});
   }
-  console.log(errs.slice(0,10).join('\n')||'no page errors');
-  await b.close();})();
+  console.log(errs.slice(0,10).join('\n')||'no page errors');if(errs.length)blad=1;
+  await b.close();if(blad){console.error('BŁĘDY W SYMULACJI');process.exit(1);}console.log('Symulacja OK');})();
