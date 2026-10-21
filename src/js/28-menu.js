@@ -4,7 +4,7 @@ function panel(x,y,w,h,edge){ctx.fillStyle='rgba(12,15,13,.86)';ctx.fillRect(x,y
 function bgField(){const m=MAPDATA[eraMaps()[G.mapSel]]||MAPDATA[0];if(m){ctx.drawImage(m.canvas,0,0);}else{ctx.fillStyle='#2c3a22';ctx.fillRect(0,0,W,H);}
   ctx.fillStyle='rgba(8,10,9,.55)';ctx.fillRect(0,0,W,H);if(vignette)ctx.drawImage(vignette,0,0);}
 function wrap(s,x,y,maxW,lh,size,col,align='left'){ctx.font=`${size}px ${FONT_T}`;const words=s.split(' ');let line='';for(const w of words){const t=line?line+' '+w:w;if(ctx.measureText(t).width>maxW&&line){txt(line,x,y,size,col,align);y+=lh;line=w;}else line=t;}if(line)txt(line,x,y,size,col,align);return y;}
-const TITLE_ITEMS=['Epoka','Dwóch graczy','Gracz kontra komputer','Sterowanie'];
+const TITLE_ITEMS=['Epoka','Strony','Dwóch graczy','Gracz kontra komputer','Sterowanie'];
 const VAR_LABEL={acw:'Wojna secesyjna',rome:'Rzym: wojna domowa',rome_c:'Rzym kontra Kartagina',rome_g:'Rzym kontra Galowie',ww2:'Wrzesień 1939'};
 const sumArmy=(a,p)=>TY(p).reduce((s,k)=>s+(a[k]||0),0);
 // scenariusz historyczny ma własną mapę; zwykła epoka pokazuje mapy bez scenariusza
@@ -13,9 +13,10 @@ const TOT=p=>FAC[p].total||12;
 function stepTitle(){const a=input.any;
   if(G.help){if(a.nl||a.nr){G.helpPage=((G.helpPage||0)+(a.nr?1:2))%3;AU.ui();}if(a.a||a.b||a.start){G.help=false;AU.ui();}return;}
   if(a.y&&input.pads){swapPads();AU.ok2();return;}
-  if(a.nu){G.sel0=(G.sel0+3)%4;AU.ui();}if(a.nd){G.sel0=(G.sel0+1)%4;AU.ui();}
+  const NT=TITLE_ITEMS.length;if(a.nu){G.sel0=(G.sel0+NT-1)%NT;AU.ui();}if(a.nd){G.sel0=(G.sel0+1)%NT;AU.ui();}
+  if(G.sel0===1&&(a.nl||a.nr||a.a)){G.sides=((G.sides||0)+(a.nl?2:1))%3;setVariant(G.variant);AU.ok2();return;}
   if(G.sel0===0&&(a.nl||a.nr||a.a)){const L=VAR_ORDER.length,i=VAR_ORDER.indexOf(G.variant),n=VAR_ORDER[(i+(a.nl?L-1:1))%L];setVariant(n);AU.ok2();return;}
-  if(a.a||a.start){AU.ok2();if(G.sel0===3){G.help=true;return;}G.mode=G.sel0===2?'cpu':'pvp';
+  if(a.a||a.start){AU.ok2();if(G.sel0===4){G.help=true;return;}G.mode=G.sel0===3?'cpu':'pvp';
     for(let p=0;p<2;p++){G.army[p].ready=false;G.army[p].row=0;}
     if(G.mode==='cpu'&&input.slot[0]===null&&input.slot[1]!==null)swapPads();
     if(G.mode==='cpu'){const pi=Math.floor(R()*PR(1).length),pr=PR(1)[pi];for(const k of TY(1))G.army[1][k]=pr[k]||0;Object.assign(G.army[1],{ready:true,preset:pi});}
@@ -36,8 +37,9 @@ function drawTitle(){bgField();
   txt(VARIANTS[G.variant].sub,W/2,92,22,BRASS,'center');
   txt('Błękit i Szarość',W/2,168,76,INK,'center',true);
   txt({acw:'Bitwy na dwa pady: piechota, konnica, armaty',rome:'Legiony, łucznicy, jazda i machiny oblężnicze',ww2:'Piechota, ckm, czołgi, działa i moździerze',pl17:'Husaria, pancerni, piechota i działa Rzeczypospolitej'}[G.era],W/2,204,24,DIM,'center');
-  TITLE_ITEMS.forEach((s0,i)=>{const s=i===0?(G.sel0===0?`◀  ${VAR_LABEL[G.variant]}  ▶`:VAR_LABEL[G.variant]):s0,y=268+i*42,on=G.sel0===i;if(on){ctx.fillStyle='rgba(201,162,74,.16)';ctx.fillRect(W/2-190,y-28,380,38);ctx.fillStyle=BRASS;ctx.fillRect(W/2-190,y-28,3,38);}
-    txt(s,W/2,y,on?34:30,on?INK:DIM,'center',true);});
+  const V=VARIANTS[G.variant],sd=['Strony historyczne',`Obie strony: ${sideName(V,0)}`,`Obie strony: ${sideName(V,1)}`][G.sides||0];
+  TITLE_ITEMS.forEach((s0,i)=>{const lab=i===0?VAR_LABEL[G.variant]:i===1?sd:s0,s=i<2&&G.sel0===i?`◀  ${lab}  ▶`:lab,y=262+i*38,on=G.sel0===i;if(on){ctx.fillStyle='rgba(201,162,74,.16)';ctx.fillRect(W/2-230,y-27,460,36);ctx.fillStyle=BRASS;ctx.fillRect(W/2-230,y-27,3,36);}
+    txt(s,W/2,y,i===1?(on?26:24):(on?34:30),on?INK:DIM,'center',true);});
   const pads=[0,1].map(p=>`Gracz ${p+1} · ${SIDE[p].name}: ${input.slot[p]!==null?input.ctl[p].src:input.pads?'naciśnij A na padzie':input.ctl[p].src}`);
   const fl=G.padMsg&&G.t-G.padMsg.t<1.5?G.padMsg.i:-1;
   txt(pads[0],24,H-44,18,fl===0?INK:SIDE[0].ui);txt(pads[1],W-24,H-44,18,fl===1?INK:SIDE[1].ui,'right');

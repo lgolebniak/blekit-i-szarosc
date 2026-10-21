@@ -102,7 +102,7 @@ const FCRY={
   mos:{charge:'ura',fire:'pali',win:'ura',unit:{mus:{charge:'gud',fire:'fyr'},pik:{charge:'gud'},rajt:{charge:'gud',fire:'fyr'}}},
   tur:{charge:'allah',fire:'ates',win:'allah'},
   rom:{charge:'roma',win:'roma'},brit:{charge:'hurrah_en',fire:'fire_en',win:'hurrah_en'},fr:{charge:'vive',fire:'feu',win:'vive'}};
-const facId=s=>{const V=VARIANTS[G.variant],f=V&&V.fac?V.fac[s]:null;return f&&FACTIONS[f]&&FACTIONS[f].cry||f;};
+const facId=s=>{const V=VARIANTS[G.variant],f=V&&V.fac?V.fac[G.sides?G.sides-1:s]:null;return f&&FACTIONS[f]&&FACTIONS[f].cry||f;};
 function cryKey(u,ev){const F=FCRY[facId(u.side)];if(!F)return null;const U=F.unit&&F.unit[u.key];return(U&&U[ev])||F[ev]||null;}
 const VOXCD={side:[0,0],cmd:[0,0],bog:-99};
 function cry(key,x,o={}){const C=CRY[key];if(!C)return;

@@ -31,9 +31,13 @@ const VARIANTS={
 const VAR_ORDER=['acw','rome','rome_c','rome_g','ww2'];
 let FAC=[FACTIONS.union,FACTIONS.confed];
 const TY=s=>FAC[s].keys,PR=s=>FAC[s].presets,MX=s=>FAC[s].max,INFO=s=>FAC[s].info||TYPEINFO;
-function setVariant(v){const V=VARIANTS[v];G.variant=v;G.era=V.era;ERA=ERAS[V.era];FAC=V.fac.map(f=>FACTIONS[f]);
+// strony: 0 = historyczne, 1 i 2 = obie armie jak jedna ze stron (każda zostaje w swoich barwach, druga z dopiskiem „II”)
+const sideName=(V,i)=>{const c=FACTIONS[V.fac[i]].colors;return(c||SIDE_ACW[i]).name;};
+function sideFacs(V){const F=V.fac.map(f=>FACTIONS[f]),m=G.sides||0;if(!m)return F;const A=F[m-1],an=sideName(V,m-1),ag=(A.colors||SIDE_ACW[m-1]).gen;
+  return[0,1].map(i=>{const c=F[i].colors;if(!c&&!A.colors)return A;return Object.assign({},A,{colors:Object.assign({},c||SIDE_ACW[i],{name:an+(i?' II':''),gen:ag+(i?' II':''),lose:undefined})});});}
+function setVariant(v){const V=VARIANTS[v];G.variant=v;G.era=V.era;ERA=ERAS[V.era];FAC=sideFacs(V);
   TYPES=[...new Set([...FAC[0].keys,...FAC[1].keys])];PRESETS=FAC[0].presets;MAXT=FAC[0].max;
-  for(let i=0;i<2;i++){Object.assign(SIDE[i],SIDE_ACW[i]);if(FAC[i].colors)Object.assign(SIDE[i],FAC[i].colors);}
+  for(let i=0;i<2;i++){for(const k of Object.keys(SIDE[i]))delete SIDE[i][k];Object.assign(SIDE[i],SIDE_ACW[i]);if(FAC[i].colors)Object.assign(SIDE[i],FAC[i].colors);}
   for(let p=0;p<2;p++){const a=G.army[p];for(const k in a)if(KD[k])delete a[k];Object.assign(a,PR(p)[0]);delete a.n;a.preset=0;a.ready=false;a.row=0;}
   if(V.era!=='acw')G.rules='classic';G.mapSel=0;}
 G.variant='acw';
