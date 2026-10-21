@@ -13,8 +13,10 @@ BEH.arc=function(u,dt,I){const{x,y,A}=I;
     clMoveMen(u,x*sp,y*sp,dt,false,vert?2.2:horiz?1.2:0,I.hum);}
   else clMoveMen(u,0,0,dt,false,0,I.hum);
   if(!I.bat)return;
-  if(A&&u.reload<=0){if(!u.aiming){u.aiming=true;u.aimDir=1;u.aimR=u.aimMin;}u.aimR+=u.aimDir*260*dt;if(u.aimR>u.aimMax){u.aimR=u.aimMax;u.aimDir=-1;}if(u.aimR<u.aimMin){u.aimR=u.aimMin;u.aimDir=1;}}
-  else if(u.aiming){u.aiming=false;arrowVolley(u);}
+  // krótkie A = strzał na wprost (zatrzymują go przeszkody), trzymane A = łukiem ponad przeszkodami
+  if(A&&u.reload<=0){u.aHold=(u.aHold||0)+dt;if(u.aHold>.22){if(!u.aiming){u.aiming=true;u.aimDir=1;u.aimR=u.aimMin;}u.aimR+=u.aimDir*260*dt;if(u.aimR>u.aimMax){u.aimR=u.aimMax;u.aimDir=-1;}if(u.aimR<u.aimMin){u.aimR=u.aimMin;u.aimDir=1;}}}
+  else if(u.aiming){u.aiming=false;u.aHold=0;arrowVolley(u);}
+  else if(u.aHold>0){u.aHold=0;const sl=u.ammoKind==='sling';clVolley(u,{reload:sl?2:2.4,range:sl?220:260,spd:sl?260:300,pk:sl?.5:.6,kind:sl?'slingf':'arrowf',noPowder:true});u.reload=u.reloadMax*.8;}
   else if(I.Ap&&I.hum)AU.bad();};
 function arrowVolley(u){const dir=clDir(u.side),kind=u.ammoKind||'arrow';u.reload=u.reloadMax||3;u.firedT=3;let k=0;
   for(const m of u.men){if(!m.alive)continue;k++;const rr=u.aimR*(1+(R()-.5)*.1);

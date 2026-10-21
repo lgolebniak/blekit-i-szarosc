@@ -7,7 +7,8 @@ function wrap(s,x,y,maxW,lh,size,col,align='left'){ctx.font=`${size}px ${FONT_T}
 const TITLE_ITEMS=['Epoka','Dwóch graczy','Gracz kontra komputer','Sterowanie'];
 const VAR_LABEL={acw:'Wojna secesyjna',rome:'Rzym: wojna domowa',rome_c:'Rzym kontra Kartagina',rome_g:'Rzym kontra Galowie',ww2:'Wrzesień 1939'};
 const sumArmy=(a,p)=>TY(p).reduce((s,k)=>s+(a[k]||0),0);
-const eraMaps=()=>MAPS.map((m,i)=>m.era===G.era&&(!m.scen||m.scen===G.variant)?i:-1).filter(i=>i>=0);
+// scenariusz historyczny ma własną mapę; zwykła epoka pokazuje mapy bez scenariusza
+const eraMaps=()=>{const sc=VARIANTS[G.variant].scen;return MAPS.map((m,i)=>m.era===G.era&&(sc?m.scen===G.variant:!m.scen)?i:-1).filter(i=>i>=0);};
 const TOT=p=>FAC[p].total||12;
 function stepTitle(){const a=input.any;
   if(G.help){if(a.nl||a.nr){G.helpPage=((G.helpPage||0)+(a.nr?1:2))%3;AU.ui();}if(a.a||a.b||a.start){G.help=false;AU.ui();}return;}
@@ -127,10 +128,10 @@ function drawMap(){bgField();txt('Pole bitwy',W/2,50,40,INK,'center',true);
     if(!on){ctx.fillStyle='rgba(0,0,0,.4)';ctx.fillRect(x-2,y-2,180,101);}txt(m.name,x+88,y+120,19,on?INK:DIM,'center');});
   const m=MAPS[eraMaps()[G.mapSel]];panel(24,206,W-48,262,G.mapRow===0?BRASS:'#6a5a30');
   txt(m.name,44,240,30,INK,'left',true);wrap(m.desc,44,264,560,19,19,'#d8cfb2');
-  const LEG={acw:[['Las','osłona 40 %, konnica wolniej'],['Murek','osłona, konnica nie przejdzie'],['Zboże','ukrywa przed ogniem z daleka'],['Wzgórze','dalszy zasięg, celniej w dół'],['Bród / woda','łatwy cel, marsz wolny'],['Droga','szybszy marsz']],
-    rome:[['Palisada','osłona, jazda i machiny nie przejdą'],['Bagno','wszyscy grzęzną, żółw najbardziej'],['Wzgórze','machiny dalej i szybciej'],['Las','osłona, jazda wolniej'],['Bród / most','jedyne przejścia przez wodę'],['Onager','łamie palisady i mosty']],
-    ww2:[['Okop','osłona 65 % dla piechoty'],['Worki','osłona, czołg przejedzie'],['Ruiny','osłona, czołg wolno'],['Druty','stop dla piechoty – czołg rozjeżdża'],['Miny','ukryte – tablice ostrzegają'],['Bagno','czołgi grzęzną']],
-    pl17:[['Wzgórze','dalszy zasięg ognia'],['Płot','osłona, konnica nie przejdzie'],['Palisada','tylko piechota, wolno'],['Wyłom','kula lub hajducy łamią płot/wał'],['Las','osłona, jazda wolniej'],['Rzeka','w głębinie żołnierze toną']]};
+  const LEG={acw:[['Las','część kul grzęźnie w drzewach'],['Murek','zatrzymuje 60% kul, armata burzy'],['Dom','chroni, aż ostrzał zrobi ruinę'],['Wzgórze','dalszy zasięg, celniej w dół'],['Skała','skruszy ją tylko armata'],['Bród / woda','łatwy cel, marsz wolny']],
+    rome:[['Palisada','osłona, jazda i machiny nie przejdą'],['Las','strzały na wprost grzęzną'],['Łuk','krótko: na wprost, trzymaj: ponad'],['Wzgórze','machiny dalej i szybciej'],['Bagno','wszyscy grzęzną, żółw najbardziej'],['Bród / most','jedyne przejścia przez wodę']],
+    ww2:[['Okop','osłona 65 % dla piechoty'],['Worki / mur','zatrzymują część kul, pociski burzą'],['Dom','chroni, aż ostrzał zrobi ruinę'],['Skała','skruszą ją tylko działa i czołg'],['Druty','stop dla piechoty – czołg rozjeżdża'],['Miny','ukryte – tablice ostrzegają']],
+    pl17:[['Wzgórze','dalszy zasięg ognia'],['Płot','osłona, konnica nie przejdzie'],['Palisada','tylko piechota, wolno'],['Wyłom','kula lub hajducy łamią płot/wał'],['Las','część kul grzęźnie w drzewach'],['Rzeka','w głębinie żołnierze toną']]};
   const leg=LEG[G.era];
   leg.forEach((l,i)=>{txt(l[0],640,240+i*21,18,BRASS);txt(l[1],735,240+i*21,16,'#cfc6a8');});
   const rows=[['Zasady',G.rules==='classic'?(G.era==='acw'?'Klasyczne':'Klasyczne (jedyne w tej epoce)'):'Taktyczne'],['Pogoda',WEATHERS[G.weatherSel]],['Widok',VIEW.on?'Ukośny':'Z góry'],['Amunicja',G.ammoLimit?'Ograniczona':'Bez limitu'],['Okrzyki',['Wyłączone','Tylko chór','Chór + lektor'][G.vox]]];

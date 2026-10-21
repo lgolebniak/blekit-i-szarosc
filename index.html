@@ -176,7 +176,7 @@ MAPS.push(
   m.sym('rot');}}
 );
 // pola minowe: prostokąty z lewej połowy + ich lustrzane/obrócone odbicia
-function mineRects(def){const out=[];for(const[x,y,w,h,n]of def.mines||[]){out.push([x,y,w,h,n]);out.push([W-x-w,def.sym==='rot'?H-y-h:y,w,h,n]);}return out;}
+function mineRects(def){const out=[];for(const[x,y,w,h,n]of def.mines||[]){out.push([x,y,w,h,n]);if(!def.minesOne)out.push([W-x-w,def.sym==='rot'?H-y-h:y,w,h,n]);}return out;}
 function setTile(x,y,v){const tx=Math.floor(x/TS),ty=Math.floor(y/TS);if(tx<0||ty<0||tx>=GW||ty>=GH)return;MAP.t[ty*GW+tx]=v;}
 let MAP=null;const MAPDATA=[];
 function buildMap(i){const d=MAPS[i],m=new MapB(d.seed);d.build(m);return{t:m.t,h:m.h,def:d,idx:i};}
@@ -621,7 +621,7 @@ function updProjs(dt){
 function impact(p){if(p.kind==='tshell')return tshellImpact(p);if(p.kind==='arrow'||p.kind==='sling')return arrowImpact(p);if(p.kind==='gren')return grenImpact(p);if(p.smoke)return smokeCloud(p.tx,p.ty);const t=tAt(p.tx,p.ty);
   if(t===T.WATER||t===T.FORD){for(let i=0;i<10;i++)parts.push({k:'dirt',x:p.tx,y:p.ty,z:0,vx:(R()-.5)*30,vy:(R()-.5)*16,vz:60+R()*60,life:0,max:.8,c:'#bcd6e2'});AU.impact(p.tx,true);}
   else{for(let i=0;i<12;i++)parts.push({k:'dirt',x:p.tx,y:p.ty,z:0,vx:(R()-.5)*50,vy:(R()-.5)*30,vz:50+R()*70,life:0,max:.9,c:R()<.5?'#5a4630':'#7a6446'});
-    if(t===T.BRIDGE)breakBridge(p.tx,p.ty,p.side);else if(t===T.PALISADE||t===T.FENCE)breakPalisade(p.tx,p.ty);else if(t===T.WIRE)crushWire(p.tx,p.ty);else if(t!==T.HOUSE&&t!==T.ROCK)decalCrater(p.tx,p.ty);if(G.era==='ww2')areaObstacleHit(p.tx,p.ty,14,12);AU.impact(p.tx);G.shake=Math.max(G.shake,1.5);}
+    if(t===T.BRIDGE)breakBridge(p.tx,p.ty,p.side);else if(t===T.PALISADE||t===T.FENCE)breakPalisade(p.tx,p.ty);else if(t===T.WIRE)crushWire(p.tx,p.ty);else if(t!==T.HOUSE&&t!==T.ROCK)decalCrater(p.tx,p.ty);areaObstacleHit(p.tx,p.ty,14,12,p.src);AU.impact(p.tx);G.shake=Math.max(G.shake,1.5);}
   const RK=G.rules==='classic'&&p.rr?10*(p.rr<300?2:p.rr<600?1.5:1):9;
   for(const e of units){if(e.dead||e.gone)continue;const de=dist(p.tx,p.ty,e.x,e.y);if(de>55+RK)continue;
     if(e.type==='tank'){if(de<RK+6)tankHit(e,(p.ap||.35)*eff(p.src,e.key),p.side,p.sx,p.sy);continue;}
@@ -1081,8 +1081,8 @@ function isFront(e,fromX){return(fromX-e.x)*clDir(e.side)>0;}
 function updBullets(dt){
   for(let i=bullets.length-1;i>=0;i--){const b=bullets[i],stp=Math.hypot(b.vx,b.vy||0)*dt;b.x+=b.vx*dt;b.y+=(b.vy||0)*dt;b.left-=stp;b.dist=(b.dist||0)+stp;
     let kill=b.left<=0||b.x<-5||b.x>W+5||b.y<28||b.y>H;
-    const t=tAt(b.x,b.y);if(G.era==='ww2'){if(t===T.ROCK)kill=true;else if(OBST_HP[t]&&b.dist>24&&!b.ob){b.ob=true;obstacleHit(b.x,b.y,BULLET_DMG[b.kind]||1);if(t===T.HOUSE||t===T.WALL||R()<.5)kill=true;}else if(!OBST_HP[t])b.ob=false;}
-    else{if(t===T.ROCK||t===T.HOUSE)kill=true;const ob=t===T.WALL||t===T.PALISADE||t===T.SANDBAG||t===T.RUINS||t===T.FENCE;if(ob&&!b.wall&&b.dist>16){b.wall=true;if(R()<(t===T.RUINS?.4:t===T.FENCE?.3:.5))kill=true;}else if(!ob)b.wall=false;}
+    const t=tAt(b.x,b.y),ti=Math.floor(b.y/TS)*GW+Math.floor(b.x/TS);
+    if(ti!==b.ti){b.ti=ti;const O=OBST[t];if(O&&b.dist>14&&R()<O.stop*(b.boom&&O.soft?.5:1)){kill=true;obstacleHit(b.x,b.y,BULLET_DMG[b.kind]||1,b.src);}}
     if(!kill&&G.era==='ww2'&&smokeAt(b.x,b.y)>3&&R()<dt*5)kill=true;
     if(!kill)for(const e of units){if(e.side===b.side||e.dead||e.gone)continue;if(Math.abs(e.y-b.y)>80||Math.abs(e.x-b.x)>80)continue;
       if(e.type==='tank'){if(Math.abs(e.x-b.x)<13&&Math.abs(e.y-b.y)<7){kill=true;if(b.ap)tankHit(e,(typeof b.ap==='function'?b.ap(b):b.ap)*eff(b.src,e.key)*evade(e),b.side,b.x-b.vx,b.y-(b.vy||0));else{parts.push({k:'spark',x:b.x,y:b.y-8,vx:-b.vx*.05,vy:-20,life:0,max:.2});}break;}continue;}
@@ -1264,7 +1264,7 @@ function cpuClassic(u,dt){const c=G.cpu;const idle={x:0,y:0,A:false};if(c.react>
   const wantEl=tg.type==='art'?52:18,ey=u.fixedElev?0:Math.abs(wantEl-u.elev)>3?(wantEl>u.elev?-1:1):0;
   const want=clamp(Math.abs(px-u.x)*(1+c.aimErr*.6),mn+5,mr-3);return{x:0,y:ey,A:ey!==0||u.aimR<want||u.aimDir<0};}
 /* --- przebieg --- */
-function clStart(){units=[];uid=1;bullets=[];
+function clStart(){units=[];uid=1;bullets=[];G.evDone={};
   G.res=[0,1].map(s=>{const r={};for(const k of TY(s))r[k]=G.army[s][k]||0;return r;});G.spawnQ=[];G.cavSlot=[0,0];
   for(const s of[0,1])for(const k of TY(s)){clSpawn(s,k,0);if(KD[k].two)clSpawn(s,k,1);}
   if(MAP.def.mines)layMines();else G.mines=[];
@@ -1285,7 +1285,7 @@ function clStep(dt){G.t+=dt;
   for(let p=0;p<2;p++){const u=clSel(p);if(!u||u.state==='enter')continue;
     if(isCPU(p))inputs[u.id]=cpuClassic(u,dt);else{const c=input.ctl[p];inputs[u.id]={x:c.lx,y:c.ly,A:acw?(c.b.a||c.b.rt):c.b.a,R:!acw&&c.b.rt,human:true};}}
   for(const u of units)clUpdate(u,dt,inputs[u.id]||null);
-  trackVel(dt);updBullets(dt);clMelee(dt);updProjs(dt);clSpawnTick(dt);eraTick3(dt);
+  trackVel(dt);updBullets(dt);clMelee(dt);updProjs(dt);clSpawnTick(dt);eraTick3(dt);scenTick(dt);
   for(let p=0;p<2;p++)clAutoSel(p);
   if(G.state==='battle')clVictory();}
 /* --- grafika trybu klasycznego --- */
@@ -1356,7 +1356,7 @@ const KD={
   leg:{base:'inf',men:8,name:'Legioniści',unit:'Kohorta',pick:'x',pos:[165,270],ai:'leg',beh:'leg',label:'Legioniści',slots:legSlots,init:u=>{u.rf='line';},
     status:u=>`${RF_NAME[u.rf]}${u.formT>0?' (zmiana)':''} · A: szyk · RT: pilum${u.cd2>0?` za ${Math.ceil(u.cd2)} s`:''}`},
   arc:{base:'inf',men:6,name:'Łucznicy',unit:'Oddział łuczników',pick:'x',pos:[100,150],ai:'arc',beh:'arc',label:'Łucznicy',init:u=>{u.aimMin=60;u.aimMax=360;u.reloadMax=3;},
-    status:u=>u.aiming?`Odległość ${Math.round((u.aimR-60)/300*100)}% – puść A`:u.reload>0?'Napinają łuki…':'Gotowi – trzymaj A, puść = salwa'},
+    status:u=>u.aiming?`Odległość ${Math.round((u.aimR-60)/300*100)}% – puść A`:u.reload>0?'Napinają łuki…':'A: na wprost · trzymaj: łukiem'},
   eq:{base:'cav',men:4,name:'Jazda',unit:'Ala jazdy',pick:'y',pos:[72,'cav'],ai:'cav',beh:'acwSabre',label:'Jeźdźcy'},
   bal:{base:'art',men:2,name:'Balista',unit:'Balista',pick:'b',pos:[44,170],ai:'artFlat',beh:'bal',label:'Obsługa',init:u=>{u.reloadMax=3.5;u.maxR=820;},
     status:u=>u.reload>0?'Napinanie cięciwy…':'Gotowa – A: bełt na wprost (przebija szereg)'},
@@ -1381,7 +1381,7 @@ const ERAS={
   rome:{name:'Legiony Rzymu',years:'49 p.n.e. · Cezar kontra Pompejusz',keys:['leg','arc','eq','bal','ona'],
     presets:[{n:'Legion',leg:6,arc:2,eq:2,bal:1,ona:1},{n:'Mur tarcz',leg:8,arc:1,eq:1,bal:1,ona:1},{n:'Grad strzał',leg:4,arc:4,eq:2,bal:1,ona:1},{n:'Machiny',leg:5,arc:2,eq:1,bal:2,ona:2},{n:'Jazda',leg:5,arc:1,eq:4,bal:1,ona:1}],
     max:{leg:12,arc:6,eq:6,bal:3,ona:3},
-    info:{leg:['Legioniści','8 ludzi · tarcza i miecz','A: linia → żółw → klin → koło · RT: pilum'],arc:['Łucznicy','6 łuczników · strzał po łuku','Trzymaj A = odległość, puść = chmura strzał.'],
+    info:{leg:['Legioniści','8 ludzi · tarcza i miecz','A: linia → żółw → klin → koło · RT: pilum'],arc:['Łucznicy','6 łuczników · strzał po łuku','Krótko A: na wprost. Trzymaj: łukiem ponad przeszkodami.'],
       eq:['Jazda','4 jeźdźców · szyk, galop, dęba','A: cios. Nie cofa się.'],bal:['Balista','ciężki bełt płasko na wprost','Przebija do 3 ludzi w linii. Tylko góra–dół.'],
       ona:['Onager','kamień wysokim łukiem','Łamie żółwia i mosty. Ładuje ~10 s.']},
     hint:'X piechota/strzelcy · Y jazda/słonie · B machiny · RT pilum',
@@ -1419,8 +1419,10 @@ BEH.arc=function(u,dt,I){const{x,y,A}=I;
     clMoveMen(u,x*sp,y*sp,dt,false,vert?2.2:horiz?1.2:0,I.hum);}
   else clMoveMen(u,0,0,dt,false,0,I.hum);
   if(!I.bat)return;
-  if(A&&u.reload<=0){if(!u.aiming){u.aiming=true;u.aimDir=1;u.aimR=u.aimMin;}u.aimR+=u.aimDir*260*dt;if(u.aimR>u.aimMax){u.aimR=u.aimMax;u.aimDir=-1;}if(u.aimR<u.aimMin){u.aimR=u.aimMin;u.aimDir=1;}}
-  else if(u.aiming){u.aiming=false;arrowVolley(u);}
+  // krótkie A = strzał na wprost (zatrzymują go przeszkody), trzymane A = łukiem ponad przeszkodami
+  if(A&&u.reload<=0){u.aHold=(u.aHold||0)+dt;if(u.aHold>.22){if(!u.aiming){u.aiming=true;u.aimDir=1;u.aimR=u.aimMin;}u.aimR+=u.aimDir*260*dt;if(u.aimR>u.aimMax){u.aimR=u.aimMax;u.aimDir=-1;}if(u.aimR<u.aimMin){u.aimR=u.aimMin;u.aimDir=1;}}}
+  else if(u.aiming){u.aiming=false;u.aHold=0;arrowVolley(u);}
+  else if(u.aHold>0){u.aHold=0;const sl=u.ammoKind==='sling';clVolley(u,{reload:sl?2:2.4,range:sl?220:260,spd:sl?260:300,pk:sl?.5:.6,kind:sl?'slingf':'arrowf',noPowder:true});u.reload=u.reloadMax*.8;}
   else if(I.Ap&&I.hum)AU.bad();};
 function arrowVolley(u){const dir=clDir(u.side),kind=u.ammoKind||'arrow';u.reload=u.reloadMax||3;u.firedT=3;let k=0;
   for(const m of u.men){if(!m.alive)continue;k++;const rr=u.aimR*(1+(R()-.5)*.1);
@@ -1483,7 +1485,7 @@ function blast(x,y,Rr,k,side,src){for(let i=0;i<10;i++)parts.push({k:'dirt',x,y,
   for(const e of units){if(e.dead||e.gone||e.type==='tank'||dist(x,y,e.x,e.y)>Rr+50)continue;
     for(const m of e.men){if(!m.alive)continue;const d=dist(x,y,m.x,m.y);if(d<Rr&&R()<k*(1-.4*d/Rr)*eff(src,e.key)){killMan(e,m,'ball');if(side>=0&&e.side!==side)G.stats[side].hits++;}}}
   for(let dy=-Rr;dy<=Rr;dy+=TS)for(let dx=-Rr;dx<=Rr;dx+=TS)if(tAt(x+dx,y+dy)===T.WIRE)crushWire(x+dx,y+dy);
-  areaObstacleHit(x,y,Math.max(Rr,10),8);}
+  areaObstacleHit(x,y,Math.max(Rr,10),8,src);}
 function grenImpact(p){blast(p.tx,p.ty,14,.75,p.side,p.src);
   for(const e of units){if(e.type!=='tank'||e.dead||e.gone)continue;if(dist(p.tx,p.ty,e.x,e.y)<14&&!e.track&&R()<.6){e.track=true;msg(e.side,`${unitName(e)}: granat zerwał gąsienicę!`);}}}
 function smokeCloud(x,y){for(let i=0;i<24;i++)parts.push({k:'smoke',x:x+(R()-.5)*40,y:y+(R()-.5)*30,vx:G.wind.x*4+(R()-.5)*3,vy:G.wind.y*4+(R()-.5)*3,r:6+R()*5,g:6,life:0,max:9+R()*3,a:.7});
@@ -1613,13 +1615,13 @@ const FACTIONS={
   carth:{keys:['lib','sli','num','ele'],
     presets:[{n:'Armia Hannibala',lib:5,sli:3,num:2,ele:2},{n:'Słonie',lib:4,sli:2,num:2,ele:4},{n:'Jazda',lib:4,sli:2,num:5,ele:1},{n:'Falanga',lib:7,sli:3,num:1,ele:1}],
     max:{lib:10,sli:6,num:6,ele:4},
-    info:{lib:['Piechota libijska','8 ludzi · włócznie','A: linia ↔ falanga (mocna z przodu).'],sli:['Procarze balearscy','6 ludzi · kamienie z proc','Trzymaj A = odległość, puść = salwa.'],
+    info:{lib:['Piechota libijska','8 ludzi · włócznie','A: linia ↔ falanga (mocna z przodu).'],sli:['Procarze balearscy','6 ludzi · kamienie z proc','Krótko A: na wprost. Trzymaj: łukiem ponad przeszkodami.'],
       num:['Jazda numidyjska','4 jeźdźców · oszczepy','Ruch w każdą stronę, także w tył. A: rzut.'],ele:['Słonie bojowe','4 rany · tratują wszystko','A: szarża. Ranny słoń może wpaść w panikę.']},
     colors:{name:'Kartagina',gen:'Kartaginy',coat:'#7a3a7a',coatD:'#552555',pants:'#c99a6e',hat:'#b8904a',ui:'#e2a8ff',uiD:'#5a2a6a',flag:['#6a2a6a','#e0c060'],shield:'#b08a3a',crest:'#6a2a6a'}},
   gaul:{keys:['war','sli','gcav'],
     presets:[{n:'Plemiona',war:7,sli:3,gcav:2},{n:'Nawała',war:9,sli:1,gcav:2},{n:'Jeźdźcy',war:6,sli:2,gcav:4},{n:'Procarze',war:6,sli:4,gcav:2}],
     max:{war:12,sli:6,gcav:6},
-    info:{war:['Wojownicy','8 ludzi · miecze','A: furia – szarża, podwójny impet, potem zmęczenie.'],sli:['Procarze','6 ludzi · kamienie z proc','Trzymaj A = odległość, puść = salwa.'],
+    info:{war:['Wojownicy','8 ludzi · miecze','A: furia – szarża, podwójny impet, potem zmęczenie.'],sli:['Procarze','6 ludzi · kamienie z proc','Krótko A: na wprost. Trzymaj: łukiem ponad przeszkodami.'],
       gcav:['Jazda galijska','4 jeźdźców','Szyk, galop, dęba. A: cios.']},
     colors:{name:'Galowie',gen:'Galów',coat:'#5a7a3a',coatD:'#3e5a28',pants:'#8a5a2a',hat:'#c07a30',ui:'#b0e07a',uiD:'#3e5a28',flag:['#3e6a2a','#e0c060'],shield:'#6a8a3a',crest:'#c07a30'}},
   pl:{keys:['rif','mg','ppk','tank','at','mor'],max:{rif:10,mg:4,ppk:3,tank:4,at:3,mor:3},colors:ERAS.ww2.sides[0],
@@ -1654,7 +1656,7 @@ Object.assign(KD,{
   lib:{base:'inf',men:8,name:'Piechota libijska',unit:'Oddział libijski',pick:'x',pos:[165,270],ai:'leg',beh:'leg',label:'Piechurzy',slots:legSlots2,forms:['line','phalanx'],init:u=>{u.rf='line';},
     status:u=>`${RF_NAME[u.rf]}${u.formT>0?' (zmiana)':''} · A: szyk`},
   sli:{base:'inf',men:6,name:'Procarze',unit:'Procarze',pick:'x',pos:[105,305],ai:'arc',beh:'arc',label:'Procarze',init:u=>{u.aimMin=60;u.aimMax=300;u.reloadMax=2.5;u.ammoKind='sling';},
-    status:u=>u.aiming?`Odległość ${Math.round((u.aimR-60)/240*100)}% – puść A`:u.reload>0?'Zakładają kamienie…':'Gotowi – trzymaj A, puść = salwa'},
+    status:u=>u.aiming?`Odległość ${Math.round((u.aimR-60)/240*100)}% – puść A`:u.reload>0?'Zakładają kamienie…':'A: na wprost · trzymaj: łukiem'},
   num:{base:'cav',men:4,name:'Jazda numidyjska',unit:'Jazda numidyjska',pick:'y',pos:[72,'cav'],ai:'num',beh:'num',label:'Jeźdźcy',
     status:u=>u.reload>0?'Sięgają po oszczepy…':'Ruch w każdą stronę · A: rzut oszczepami'},
   ele:{base:'ele',men:1,name:'Słonie bojowe',unit:'Słoń bojowy',pick:'y',pos:[96,'cav'],ai:'ele',beh:'ele',label:'Wytrzymałość',init:u=>{u.hp=4;u.panicT=0;u.chargeT=0;u.tiredT=0;},
@@ -1837,7 +1839,7 @@ function drawElephant(u,x,y){x=Math.round(x);y=Math.round(y);const dir=clDir(u.s
   if(u.panicT>0){r(13,-24,2,7,G1);r(12,-25,2,1,G1);}else{r(12,-10,2,7,G1);r(11,-4,2,1,G1);}
   r(-7,-24,11,6,S.coat);r(-7,-24,11,1,S.flag[1]);r(3,-27,2,2,'#c99a6e');r(-4,-32,1,9,'#6a4a2a');r(-4,-33,1,1,'#c8ccd0');}
 PROJDRAW.sling=function(p,x,y){ctx.fillStyle='rgba(0,0,0,.3)';ctx.fillRect(Math.round(x),Math.round(y),1,1);ctx.fillStyle='#8a867c';ctx.fillRect(Math.round(x),Math.round(y-p.h),2,1);};
-BULLET_LOOK.jav=['#6a4a2a',5,1];BULLET_LOOK.atr=['#fff3c4',4,1];
+BULLET_LOOK.jav=['#6a4a2a',5,1];BULLET_LOOK.arrowf=['#4e3520',5,1];BULLET_LOOK.slingf=['#8a867c',2,1];BULLET_LOOK.atr=['#fff3c4',4,1];
 const _eraChip=eraChip;
 function eraChip2(type,x,y,col){ctx.fillStyle=col;
   switch(type){case'lib':ctx.fillRect(x+1,y+1,6,6);ctx.fillRect(x+7,y-2,1,11);return true;
@@ -1900,18 +1902,25 @@ const AUTO={
 function autoDefend(u,dt){if(G.era!=='ww2'||G.state!=='battle'||u.state==='enter'||u.dead)return;const f=AUTO[u.key];if(f)f(u,dt);}
 
 // --- przeszkody niszczone ostrzałem na wprost; granaty i moździerze lecą nad nimi ---
-const OBST_HP={[T.SANDBAG]:12,[T.RUINS]:18,[T.HOUSE]:30,[T.WALL]:16};
-const BULLET_DMG={mg:.5,rifle:1,musket:1,atr:2,shell:6,bolt:2,pilum:.5,jav:.5};
-function obstacleHit(x,y,dmg){if(G.era!=='ww2')return;const tx=Math.floor(x/TS),ty=Math.floor(y/TS);if(tx<0||ty<0||tx>=GW||ty>=GH)return;
-  const i=ty*GW+tx,t=MAP.t[i],hp=OBST_HP[t];if(!hp)return;if(!MAP.thp)MAP.thp=new Float32Array(GW*GH);
-  const before=MAP.thp[i];MAP.thp[i]+=dmg;const g=G.tctx,X=tx*TS,Y=ty*TS;
+// przeszkody dla strzałów na wprost (wszystkie epoki): szansa zatrzymania kuli przy wejściu na pole, wytrzymałość, co zostaje po zniszczeniu
+// skała: zatrzymuje wszystko, kruszą ją tylko armaty i czołg; dom: zatrzymuje kule, aż ostrzał zrobi z niego ruinę;
+// las i zboże: każde pole zatrzymuje część kul – przez pas lasu nie przechodzi zwykle od 1/3 do 2/3
+const OBST={[T.ROCK]:{stop:1,hp:40,heavy:true,to:T.RUINS},[T.HOUSE]:{stop:1,hp:30,to:T.RUINS},[T.WALL]:{stop:.6,hp:16,to:T.GRASS},
+  [T.SANDBAG]:{stop:.6,hp:12,to:T.GRASS},[T.PALISADE]:{stop:.5,hp:10,to:T.GRASS},[T.FENCE]:{stop:.3,hp:6,to:T.GRASS},[T.RUINS]:{stop:.35},
+  [T.FOREST]:{stop:.15,soft:true},[T.WHEAT]:{stop:.06,soft:true}};
+const HEAVY=new Set(['art','dz','at','tank']);
+const BULLET_DMG={mg:.5,rifle:1,musket:1,pistol:.5,atr:2,shell:6,bolt:2,pilum:.5,jav:.5,arrowf:.3,slingf:.5};
+function obstacleHit(x,y,dmg,src){const tx=Math.floor(x/TS),ty=Math.floor(y/TS);if(tx<0||ty<0||tx>=GW||ty>=GH)return;
+  const i=ty*GW+tx,t=MAP.t[i],O=OBST[t];if(!O||!O.hp)return;if(!MAP.thp)MAP.thp=new Float32Array(GW*GH);
   if(R()<.6)parts.push({k:'dust',x:x,y:y-4,vx:(R()-.5)*20,vy:-10,life:0,max:.4,c:t===T.SANDBAG?'190,170,120':'150,140,125'});
+  if(O.heavy&&!HEAVY.has(src))return;
+  const hp=O.hp,before=MAP.thp[i];MAP.thp[i]+=dmg;const g=G.tctx,X=tx*TS,Y=ty*TS;
   if(g&&before<hp*.5&&MAP.thp[i]>=hp*.5){for(let k=0;k<4;k++){g.fillStyle='rgba(30,24,16,.8)';g.fillRect(X+Math.floor(R()*10),Y+Math.floor(R()*9),2,1);}}
-  if(MAP.thp[i]>=hp){MAP.thp[i]=0;MAP.t[i]=t===T.HOUSE?T.RUINS:T.GRASS;
+  if(MAP.thp[i]>=hp){MAP.thp[i]=0;MAP.t[i]=O.to;
     for(let k=0;k<10;k++)parts.push({k:'dirt',x:X+6,y:Y+6,z:2,vx:(R()-.5)*50,vy:(R()-.5)*30,vz:40+R()*50,life:0,max:.8,c:t===T.SANDBAG?'#b8a67a':'#8a847a'});AU.impact(X+6,true);
-    if(g){if(t===T.HOUSE){g.fillStyle='rgba(60,56,50,.85)';g.fillRect(X,Y-6,TS,TS+6);for(let k=0;k<8;k++){g.fillStyle=R()<.5?'#8a8278':'#5a524a';g.fillRect(X+Math.floor(R()*10),Y-4+Math.floor(R()*14),3,2);}}
+    if(g){if(t===T.HOUSE||t===T.ROCK){g.fillStyle=t===T.ROCK?'rgba(96,90,80,.9)':'rgba(60,56,50,.85)';g.fillRect(X,t===T.HOUSE?Y-6:Y,TS,TS+(t===T.HOUSE?6:0));for(let k=0;k<8;k++){g.fillStyle=R()<.5?'#8a8278':'#5a524a';g.fillRect(X+Math.floor(R()*10),Y-(t===T.HOUSE?4:0)+Math.floor(R()*12),3,2);}}
       else{g.fillStyle='rgba(70,82,44,.9)';g.fillRect(X,Y,TS,TS);for(let k=0;k<7;k++){g.fillStyle=t===T.SANDBAG?(R()<.5?'#b8a67a':'#8a7a52'):(R()<.5?'#8a847a':'#6a645a');g.fillRect(X+Math.floor(R()*10),Y+Math.floor(R()*10),2+Math.floor(R()*2),1+Math.floor(R()*2));}}}}}
-function areaObstacleHit(x,y,Rr,dmg){if(G.era!=='ww2')return;for(let dy=-Rr;dy<=Rr;dy+=TS/2)for(let dx=-Rr;dx<=Rr;dx+=TS/2){if(dx*dx+dy*dy<=Rr*Rr)obstacleHit(x+dx,y+dy,dmg/4);}}
+function areaObstacleHit(x,y,Rr,dmg,src){for(let dy=-Rr;dy<=Rr;dy+=TS/2)for(let dx=-Rr;dx<=Rr;dx+=TS/2){if(dx*dx+dy*dy<=Rr*Rr)obstacleHit(x+dx,y+dy,dmg/4,src);}}
 
 /* ================= BALANS: czołg strzela jak armata, limit amunicji dla najmocniejszej broni ================= */
 const AMMO={tank:12,at:14,mor:10,ppk:10,ona:8,bal:14,art:15};
@@ -2019,7 +2028,8 @@ function wrap(s,x,y,maxW,lh,size,col,align='left'){ctx.font=`${size}px ${FONT_T}
 const TITLE_ITEMS=['Epoka','Dwóch graczy','Gracz kontra komputer','Sterowanie'];
 const VAR_LABEL={acw:'Wojna secesyjna',rome:'Rzym: wojna domowa',rome_c:'Rzym kontra Kartagina',rome_g:'Rzym kontra Galowie',ww2:'Wrzesień 1939'};
 const sumArmy=(a,p)=>TY(p).reduce((s,k)=>s+(a[k]||0),0);
-const eraMaps=()=>MAPS.map((m,i)=>m.era===G.era&&(!m.scen||m.scen===G.variant)?i:-1).filter(i=>i>=0);
+// scenariusz historyczny ma własną mapę; zwykła epoka pokazuje mapy bez scenariusza
+const eraMaps=()=>{const sc=VARIANTS[G.variant].scen;return MAPS.map((m,i)=>m.era===G.era&&(sc?m.scen===G.variant:!m.scen)?i:-1).filter(i=>i>=0);};
 const TOT=p=>FAC[p].total||12;
 function stepTitle(){const a=input.any;
   if(G.help){if(a.nl||a.nr){G.helpPage=((G.helpPage||0)+(a.nr?1:2))%3;AU.ui();}if(a.a||a.b||a.start){G.help=false;AU.ui();}return;}
@@ -2139,10 +2149,10 @@ function drawMap(){bgField();txt('Pole bitwy',W/2,50,40,INK,'center',true);
     if(!on){ctx.fillStyle='rgba(0,0,0,.4)';ctx.fillRect(x-2,y-2,180,101);}txt(m.name,x+88,y+120,19,on?INK:DIM,'center');});
   const m=MAPS[eraMaps()[G.mapSel]];panel(24,206,W-48,262,G.mapRow===0?BRASS:'#6a5a30');
   txt(m.name,44,240,30,INK,'left',true);wrap(m.desc,44,264,560,19,19,'#d8cfb2');
-  const LEG={acw:[['Las','osłona 40 %, konnica wolniej'],['Murek','osłona, konnica nie przejdzie'],['Zboże','ukrywa przed ogniem z daleka'],['Wzgórze','dalszy zasięg, celniej w dół'],['Bród / woda','łatwy cel, marsz wolny'],['Droga','szybszy marsz']],
-    rome:[['Palisada','osłona, jazda i machiny nie przejdą'],['Bagno','wszyscy grzęzną, żółw najbardziej'],['Wzgórze','machiny dalej i szybciej'],['Las','osłona, jazda wolniej'],['Bród / most','jedyne przejścia przez wodę'],['Onager','łamie palisady i mosty']],
-    ww2:[['Okop','osłona 65 % dla piechoty'],['Worki','osłona, czołg przejedzie'],['Ruiny','osłona, czołg wolno'],['Druty','stop dla piechoty – czołg rozjeżdża'],['Miny','ukryte – tablice ostrzegają'],['Bagno','czołgi grzęzną']],
-    pl17:[['Wzgórze','dalszy zasięg ognia'],['Płot','osłona, konnica nie przejdzie'],['Palisada','tylko piechota, wolno'],['Wyłom','kula lub hajducy łamią płot/wał'],['Las','osłona, jazda wolniej'],['Rzeka','w głębinie żołnierze toną']]};
+  const LEG={acw:[['Las','część kul grzęźnie w drzewach'],['Murek','zatrzymuje 60% kul, armata burzy'],['Dom','chroni, aż ostrzał zrobi ruinę'],['Wzgórze','dalszy zasięg, celniej w dół'],['Skała','skruszy ją tylko armata'],['Bród / woda','łatwy cel, marsz wolny']],
+    rome:[['Palisada','osłona, jazda i machiny nie przejdą'],['Las','strzały na wprost grzęzną'],['Łuk','krótko: na wprost, trzymaj: ponad'],['Wzgórze','machiny dalej i szybciej'],['Bagno','wszyscy grzęzną, żółw najbardziej'],['Bród / most','jedyne przejścia przez wodę']],
+    ww2:[['Okop','osłona 65 % dla piechoty'],['Worki / mur','zatrzymują część kul, pociski burzą'],['Dom','chroni, aż ostrzał zrobi ruinę'],['Skała','skruszą ją tylko działa i czołg'],['Druty','stop dla piechoty – czołg rozjeżdża'],['Miny','ukryte – tablice ostrzegają']],
+    pl17:[['Wzgórze','dalszy zasięg ognia'],['Płot','osłona, konnica nie przejdzie'],['Palisada','tylko piechota, wolno'],['Wyłom','kula lub hajducy łamią płot/wał'],['Las','część kul grzęźnie w drzewach'],['Rzeka','w głębinie żołnierze toną']]};
   const leg=LEG[G.era];
   leg.forEach((l,i)=>{txt(l[0],640,240+i*21,18,BRASS);txt(l[1],735,240+i*21,16,'#cfc6a8');});
   const rows=[['Zasady',G.rules==='classic'?(G.era==='acw'?'Klasyczne':'Klasyczne (jedyne w tej epoce)'):'Taktyczne'],['Pogoda',WEATHERS[G.weatherSel]],['Widok',VIEW.on?'Ukośny':'Z góry'],['Amunicja',G.ammoLimit?'Ograniczona':'Bez limitu'],['Okrzyki',['Wyłączone','Tylko chór','Chór + lektor'][G.vox]]];
@@ -2233,13 +2243,13 @@ Object.assign(FACTIONS,{
 });
 ERAS.pl17={name:'Husaria',years:'1605 – 1673',keys:[],presets:[],max:{},info:PL17INFO,hint:'X piechota · Y jazda · B działa · RT klin'};
 Object.assign(VARIANTS,{
-  kirch:{era:'pl17',fac:['rp_k','swe'],sub:'Kircholm · 27 września 1605 · Chodkiewicz kontra Karol IX',hud:'Kircholm 1605',
+  kirch:{era:'pl17',scen:true,fac:['rp_k','swe'],sub:'Kircholm · 27 września 1605 · Chodkiewicz kontra Karol IX',hud:'Kircholm 1605',
     tip:'Szwedzi stoją na wzgórzach – wywab ich w dół, potem husaria!',
     hist:'Historycznie: 3,5 tys. żołnierzy Chodkiewicza rozgromiło ponad 11 tys. Szwedów. Szwedzi stracili do 9 tys., Polacy ok. 100.'},
-  klusz:{era:'pl17',fac:['rp_l','mos'],sub:'Kłuszyn · 4 lipca 1610 · Żółkiewski kontra Szujski i De la Gardie',hud:'Kłuszyn 1610',
+  klusz:{era:'pl17',scen:true,fac:['rp_l','mos'],sub:'Kłuszyn · 4 lipca 1610 · Żółkiewski kontra Szujski i De la Gardie',hud:'Kłuszyn 1610',
     tip:'Szukaj luk w płotach – tam wpadnie husaria.',
     hist:'Historycznie: ok. 6,5 tys. żołnierzy Żółkiewskiego pobiło ok. 35 tys. Rosjan i najemników – husaria szarżowała wielokrotnie.'},
-  choc:{era:'pl17',fac:['rp_c','tur'],sub:'Chocim · 11 listopada 1673 · Sobieski kontra Husajn Pasza',hud:'Chocim 1673',
+  choc:{era:'pl17',scen:true,fac:['rp_c','tur'],sub:'Chocim · 11 listopada 1673 · Sobieski kontra Husajn Pasza',hud:'Chocim 1673',
     tip:'Hajducy przy palisadzie robią wyłom, działa też. Potem husaria!',
     hist:'Historycznie: Sobieski zdobył obóz turecki (po ok. 30 tys. żołnierzy po obu stronach). Zginęło kilkanaście tysięcy Turków.'}});
 VAR_ORDER.push('kirch','klusz','choc');
@@ -2467,6 +2477,118 @@ eraChip2=function(type,x,y,col){
   if(type==='hus'){ctx.fillStyle=col;ctx.fillRect(x,y+4,8,3);ctx.fillRect(x+7,y+2,2,3);ctx.fillRect(x,y+7,1,2);ctx.fillRect(x+6,y+7,1,2);ctx.fillRect(x+3,y+1,2,3);for(let k=0;k<9;k++)ctx.fillRect(x+2+k,y+2-Math.floor(k/3),1,1);ctx.fillRect(x+1,y-3,1,5);ctx.fillRect(x,y-2,1,3);return true;}
   return _eraChip2PL(type,x,y,col);};
 
+/* ================= BITWY HISTORYCZNE: Kanny, Alezja, Wiedeń, Waterloo, Gettysburg, Monte Cassino ================= */
+// każda bitwa: własna mapa, składy stron (często nierówne), opis, wynik historyczny i zdarzenia w czasie (posiłki)
+const facOf=(base,o)=>Object.assign({},FACTIONS[base],o);
+Object.assign(FACTIONS,{
+  carth_k:{keys:['lib','war','sli','num','gcav'],total:12,max:{lib:6,war:6,sli:4,num:4,gcav:3},cry:'carth',colors:FACTIONS.carth.colors,
+    info:Object.assign({},FACTIONS.gaul.info,FACTIONS.carth.info,{war:['Galowie i Iberowie','8 ludzi · środek półksiężyca','A: furia – szarża, potem zmęczenie.'],gcav:['Jazda iberyjska','4 jeźdźców · ciężka jazda','Kłus, galop, dęba. A: cios.']}),
+    presets:[{n:'Hannibal',lib:4,war:3,sli:2,num:2,gcav:1},{n:'Półksiężyc',lib:3,war:5,sli:2,num:1,gcav:1},{n:'Jazda',lib:3,war:3,sli:1,num:3,gcav:2}]},
+  rom_k:{keys:['leg','arc','eq'],total:16,max:{leg:13,arc:4,eq:4},cry:'rom',info:ERAS.rome.info,colors:Object.assign({},ERAS.rome.sides[0],{name:'Rzymianie',gen:'Rzymian'}),
+    presets:[{n:'Warron',leg:12,arc:2,eq:2},{n:'Głęboki szyk',leg:13,arc:1,eq:2},{n:'Więcej jazdy',leg:10,arc:2,eq:4}]},
+  gaul_a:facOf('gaul',{total:16,max:{war:12,sli:5,gcav:4},cry:'gaul',presets:[{n:'Odsiecz',war:11,sli:3,gcav:2},{n:'Nawała',war:12,sli:2,gcav:2},{n:'Jeźdźcy',war:9,sli:3,gcav:4}]}),
+  rp_w:facOf('rp_k',{cry:'rp_k',max:{hus:9,pan:4,haj:4,dz:2},presets:[{n:'Sobieski',hus:7,pan:2,haj:2,dz:1},{n:'Wielka szarża',hus:9,pan:2,haj:0,dz:1},{n:'Z piechotą',hus:6,pan:2,haj:3,dz:1}]}),
+  tur_w:facOf('tur',{total:16,cry:'tur',max:{jan:10,sip:6,dz:3},presets:[{n:'Kara Mustafa',jan:9,sip:5,dz:2},{n:'Janczarzy',jan:10,sip:3,dz:3},{n:'Spahisi',jan:8,sip:6,dz:2}]}),
+  brit:{keys:['inf','cav','art'],total:12,max:{inf:9,cav:4,art:3},info:null,cry:'brit',
+    colors:{name:'Brytyjczycy',gen:'Wellingtona',coat:'#b0302a',coatD:'#7a1e18',pants:'#d8d4c8',hat:'#1a1a1a',ui:'#ff8a7a',uiD:'#7a2a22',flag:['#1e3a8a','#c8102e']},
+    presets:[{n:'Wellington',inf:7,cav:3,art:2},{n:'Czworoboki',inf:9,cav:1,art:2},{n:'Jazda',inf:6,cav:4,art:2}]},
+  fr:{keys:['inf','cav','lan','art'],total:14,max:{inf:8,cav:4,lan:3,art:4},info:null,cry:'fr',
+    colors:{name:'Francuzi',gen:'Napoleona',coat:'#2a3f8f',coatD:'#1c2b63',pants:'#e8e4d8',hat:'#1a1a1a',ui:'#8fb0ff',uiD:'#2a3f8f',flag:['#2a3f8f','#f0ece0']},
+    presets:[{n:'Napoleon',inf:6,cav:3,lan:2,art:3},{n:'Kirasjerzy',inf:5,cav:4,lan:2,art:3},{n:'Wielka bateria',inf:6,cav:2,lan:2,art:4}]},
+  union_g:facOf('union',{keys:['inf','cav','art'],total:12,max:{inf:9,cav:2,art:4},cry:'union',presets:[{n:'Meade',inf:8,cav:1,art:3},{n:'Mur piechoty',inf:9,cav:1,art:2},{n:'Działa',inf:7,cav:1,art:4}]}),
+  confed_g:facOf('confed',{keys:['inf','cav','art'],total:14,max:{inf:10,cav:2,art:4},cry:'confed',presets:[{n:'Lee i Pickett',inf:9,cav:1,art:4},{n:'Szarża',inf:10,cav:2,art:2},{n:'Kanonada',inf:8,cav:2,art:4}]}),
+  pl_c:facOf('pl',{total:14,cry:'pl',presets:[{n:'Anders',rif:6,mg:2,ppk:1,tank:2,at:1,mor:2},{n:'Szturm',rif:7,mg:2,ppk:1,tank:1,at:1,mor:2},{n:'Pancerni',rif:5,mg:2,ppk:1,tank:3,at:1,mor:2}]}),
+  de_c:facOf('de',{total:12,cry:'de',presets:[{n:'Spadochroniarze',rif:5,mg:3,ppk:0,tank:1,at:2,mor:1},{n:'Gniazda ckm',rif:4,mg:4,ppk:0,tank:1,at:2,mor:1},{n:'Obrona',rif:6,mg:3,ppk:0,tank:0,at:2,mor:1}]})
+});
+Object.assign(VARIANTS,{
+  cannae:{era:'rome',scen:true,fac:['carth_k','rom_k'],sub:'Kanny · 2 sierpnia 216 p.n.e. · Hannibal kontra Rzym',hud:'Kanny 216 p.n.e.',
+    tip:'Wpuść legiony w środek, potem zamknij je z boków jazdą.',
+    hist:'Historycznie: ok. 50 tys. żołnierzy Hannibala okrążyło ok. 80 tys. Rzymian; zginęło 50–70 tys. Rzymian.'},
+  alesia:{era:'rome',scen:true,fac:['caesar','gaul_a'],sub:'Alezja · wrzesień 52 p.n.e. · Cezar kontra Galowie',hud:'Alezja 52 p.n.e.',
+    tip:'Utrzymaj palisadę – za nią legiony i machiny są groźne.',
+    hist:'Historycznie: Rzymianie odparli wielką armię odsieczy, Wercyngetoryks skapitulował, a Galia uległa Rzymowi.',
+    events:[{t:75,side:1,add:{war:3,gcav:1},msg:'Wercassivellaunus prowadzi odsiecz – nowe hufce Galów!'}]},
+  vienna:{era:'pl17',scen:true,fac:['rp_w','tur_w'],sub:'Wiedeń · 12 września 1683 · Sobieski kontra Kara Mustafa',hud:'Wiedeń 1683',
+    tip:'Zejdź ze wzgórz i rozbij obóz turecki – husaria przesądzi bitwę.',
+    hist:'Historycznie: ok. 70 tys. żołnierzy Sobieskiego i cesarskich rozbiło ponad 100 tys. Turków. Wiedeń ocalał.',
+    events:[{t:60,side:0,add:{hus:3},msg:'Z Kahlenbergu rusza husaria – największa szarża jazdy w dziejach!'}]},
+  waterloo:{era:'acw',scen:true,fac:['brit','fr'],sub:'Waterloo · 18 czerwca 1815 · Wellington kontra Napoleon',hud:'Waterloo 1815',
+    tip:'Trzymaj grzbiet i folwarki – po południu nadejdą Prusacy.',
+    hist:'Historycznie: Wellington utrzymał grzbiet, a nadejście Prusaków Blüchera przesądziło o klęsce Napoleona.',
+    events:[{t:100,side:0,add:{inf:2,cav:1,art:1},msg:'Prusacy Blüchera nadciągają z lewej flanki!'}]},
+  gett:{era:'acw',scen:true,fac:['union_g','confed_g'],sub:'Gettysburg · 3 lipca 1863 · Meade kontra Lee (szarża Picketta)',hud:'Gettysburg 1863',
+    tip:'Za kamiennym murkiem jesteś bezpieczniejszy – niech przyjdą przez pole.',
+    hist:'Historycznie: ok. 12,5 tys. Konfederatów ruszyło na Cmentarny Grzbiet; ponad połowa padła, została ranna lub trafiła do niewoli.'},
+  cassino:{era:'ww2',scen:true,fac:['pl_c','de_c'],sub:'Monte Cassino · maj 1944 · II Korpus Polski kontra Niemcy',hud:'Monte Cassino 1944',
+    tip:'Skały zatrzymują kule – kruszą je tylko działa i czołgi.',
+    hist:'18 maja 1944 Polacy zatknęli flagę na ruinach klasztoru. Poległo ponad 900 polskich żołnierzy.'}
+});
+Object.assign(VAR_LABEL,{cannae:'Bitwa pod Kannami',alesia:'Oblężenie Alezji',vienna:'Odsiecz wiedeńska',waterloo:'Bitwa pod Waterloo',gett:'Bitwa pod Gettysburgiem',cassino:'Bitwa o Monte Cassino'});
+VAR_ORDER.length=0;VAR_ORDER.push('rome','rome_c','cannae','rome_g','alesia','kirch','klusz','choc','vienna','waterloo','acw','gett','ww2','cassino');
+
+MAPS.push(
+{era:'rome',scen:'cannae',name:'Kanny',seed:201,
+ desc:'2 sierpnia 216 p.n.e. Hannibal stawia Galów i Iberów półksiężycem w środku, Libijczyków na skrzydłach. Gdy legiony wepchną się w środek, zamknij je z boków jazdą.',
+ build(m){m.fill(T.GRASS);
+  m.path([[-10,508],[260,496],[520,512],[760,498],[970,506]],30,T.WATER);m.rect(300,486,40,30,T.FORD);m.rect(660,484,40,30,T.FORD);
+  m.circle(310,110,24,T.FOREST,.5);m.circle(650,130,26,T.FOREST,.5);m.circle(480,60,22,T.FOREST,.5);
+  m.circle(230,330,44,T.WHEAT,.3);m.circle(740,350,46,T.WHEAT,.3);m.hill(110,250,70,1);m.hill(860,250,60,1);
+  m.path([[0,240],[960,250]],8,T.ROAD);}},
+{era:'rome',scen:'alesia',name:'Alezja',seed:207,
+ desc:'Wrzesień 52 p.n.e. Cezar otoczył Alezję wałami. Od zewnątrz uderza armia odsieczy Galów. Za palisadą i rowami legiony i machiny są groźne – trzymaj bramy.',
+ build(m){m.fill(T.GRASS);
+  m.hill(70,90,70,1);m.hill(60,80,34,2);m.rect(30,60,30,20,T.HOUSE);m.rect(76,96,24,16,T.HOUSE);
+  m.path([[340,30],[340,530]],10,T.MUD);m.path([[366,30],[366,530]],8,T.MUD);
+  m.path([[312,34],[312,150]],6,T.PALISADE);m.path([[312,196],[312,346]],6,T.PALISADE);m.path([[312,392],[312,530]],6,T.PALISADE);
+  for(const[x,y]of[[410,80],[430,240],[405,300],[425,460]])m.path([[x,y],[x+14,y+24]],6,T.FENCE);
+  m.hill(780,110,95,1);m.hill(800,100,45,2);m.circle(620,430,60,T.FOREST,.35);m.circle(880,440,46,T.FOREST,.3);m.circle(540,200,40,T.WHEAT,.3);
+  m.path([[312,173],[960,180]],8,T.ROAD);}},
+{era:'pl17',scen:'vienna',name:'Wiedeń',seed:213,
+ desc:'12 września 1683. Odsiecz Sobieskiego schodzi ze wzgórz Lasu Wiedeńskiego na obóz Kara Mustafy. Winnice i rowy spowalniają marsz, a w obozie czekają janczarzy.',
+ build(m){m.fill(T.GRASS);
+  m.path([[-10,40],[300,52],[600,38],[970,48]],34,T.WATER);
+  m.hill(130,280,200,1,.3);m.hill(110,280,110,2,.3);
+  m.circle(40,150,50,T.FOREST,.35);m.circle(50,440,56,T.FOREST,.35);m.circle(220,100,36,T.FOREST,.4);m.circle(230,470,38,T.FOREST,.4);
+  m.rect(300,150,90,60,T.WHEAT);m.rect(300,330,90,60,T.WHEAT);m.circle(470,280,30,T.MUD,.4);
+  for(const[x,y]of[[700,160],[750,210],[690,340],[780,390],[840,150],[860,300],[720,450]])m.rect(x,y,18,12,T.HOUSE);
+  m.path([[900,90],[880,140],[905,190],[885,240]],8,T.TRENCH);m.rect(930,70,30,50,T.HOUSE);
+  m.path([[0,290],[960,270]],10,T.ROAD);}},
+{era:'acw',scen:'waterloo',name:'Waterloo',seed:219,
+ desc:'18 czerwca 1815. Wellington trzyma grzbiet Mont-Saint-Jean, przed nim folwarki Hougoumont i La Haye Sainte. Ziemia rozmiękła po ulewie. Wytrwaj do nadejścia Prusaków.',
+ build(m){m.fill(T.GRASS);
+  for(const y of[110,200,290,380,450])m.hill(210,y,95,1,.25);for(const y of[130,270,410])m.hill(780,y,90,1,.25);
+  for(const[a,b]of[[40,120],[160,250],[310,400],[440,520]])m.path([[300,a],[300,b]],6,T.FENCE);
+  m.path([[372,74],[452,74]],6,T.WALL);m.path([[372,74],[372,150]],6,T.WALL);m.path([[372,150],[452,150]],6,T.WALL);m.path([[452,74],[452,98]],6,T.WALL);m.path([[452,126],[452,150]],6,T.WALL);
+  m.rect(388,92,30,22,T.HOUSE);m.circle(500,110,30,T.FOREST,.4);
+  m.rect(420,300,30,22,T.HOUSE);m.path([[408,290],[468,290]],6,T.WALL);m.path([[408,340],[468,340]],6,T.WALL);
+  m.circle(560,220,40,T.MUD,.5);m.circle(600,380,50,T.MUD,.5);m.circle(520,470,40,T.WHEAT,.3);m.circle(640,120,46,T.WHEAT,.3);
+  m.path([[0,280],[960,276]],10,T.ROAD);m.rect(840,240,24,18,T.HOUSE);}},
+{era:'acw',scen:'gett',name:'Gettysburg',seed:225,
+ desc:'3 lipca 1863. Po kanonadzie 150 dział Konfederaci Lee idą przez otwarte pole na Cmentarny Grzbiet. Unia czeka za kamiennym murkiem; płoty przy drodze spowalniają atak.',
+ build(m){m.fill(T.GRASS);
+  m.hill(170,280,170,1,.25);m.hill(90,80,60,2);m.hill(110,480,55,2);m.circle(110,488,26,T.ROCK,.35);
+  m.path([[262,110],[262,250],[285,262],[285,420]],6,T.WALL);m.circle(240,255,18,T.FOREST,.4);
+  m.hill(810,280,150,1,.25);for(const y of[80,210,340,470])m.circle(950,y,34,T.FOREST,.3);
+  m.path([[520,-10],[560,560]],10,T.ROAD);
+  for(const o of[-16,16])for(const[a,b]of[[0,110],[150,250],[290,400],[440,540]])m.path([[520+o+a*40/570,a],[520+o+b*40/570,b]],6,T.FENCE);
+  m.circle(420,160,40,T.WHEAT,.3);m.circle(670,380,50,T.WHEAT,.3);m.rect(600,120,20,16,T.HOUSE);}},
+{era:'ww2',scen:'cassino',name:'Monte Cassino',seed:231,mines:[[560,330,60,60,6]],minesOne:true,
+ desc:'Maj 1944. II Korpus gen. Andersa szturmuje wzgórza pod Monte Cassino. Niemieccy spadochroniarze bronią się w skałach i ruinach klasztoru.',
+ build(m){m.fill(T.GRASS);
+  m.hill(840,270,150,1,.3);m.hill(850,260,80,2,.3);m.hill(560,110,100,1,.3);m.hill(570,100,50,2,.3);m.hill(460,430,80,1,.3);
+  m.circle(500,230,30,T.ROCK,.4);m.circle(640,190,26,T.ROCK,.4);m.circle(690,420,34,T.ROCK,.4);m.circle(420,80,22,T.ROCK,.4);m.circle(760,110,24,T.ROCK,.4);
+  m.circle(860,260,52,T.RUINS,.35);m.rect(842,236,20,16,T.HOUSE);m.rect(880,280,16,14,T.HOUSE);
+  m.path([[720,120],[734,170],[720,220],[734,270],[720,330],[734,380],[720,430]],8,T.TRENCH);m.path([[640,300],[640,350]],6,T.WIRE);
+  m.circle(120,120,56,T.FOREST,.35);m.circle(160,460,56,T.FOREST,.35);m.circle(300,300,40,T.FOREST,.4);
+  m.path([[0,300],[200,320],[380,280],[600,330],[780,300],[960,320]],8,T.ROAD);}}
+);
+
+// zdarzenia scenariusza: posiłki wchodzą do odwodu; rodzaj bez oddziału na polu wchodzi od razu
+function scenTick(dt){const V=VARIANTS[G.variant];if(!V||!V.events||G.state!=='battle')return;
+  V.events.forEach((e,i)=>{if(G.evDone[i]||G.t<e.t)return;G.evDone[i]=true;
+    for(const k in e.add){if(!TY(e.side).includes(k)||!e.add[k])continue;G.res[e.side][k]=(G.res[e.side][k]||0)+e.add[k];
+      if(!units.some(u=>u.side===e.side&&u.key===k&&!u.dead&&!u.gone)&&!G.spawnQ.some(q=>q.side===e.side&&q.key===k))clQueue(e.side,k,0);}
+    msg(e.side,e.msg);AU.bugle(BUG.charge);});}
 /* ================= GŁOSY BITWY: chór formantowy, okrzyki bojowe, lektor, odgłosy pola ================= */
 // chór męski syntetyzowany w WebAudio (działa offline) + opcjonalny lektor z syntezy mowy przeglądarki
 G.vox=2;// 2 = chór + lektor, 1 = tylko chór, 0 = bez okrzyków
@@ -2558,7 +2680,9 @@ const CRY={
   venus:{tts:'Venus Victrix!',lang:'it-IT',syl:'we/0/.2 nus/2/.25 wik/3/.2 triks/2/.6'},
   hercules:{tts:'Hercules Invictus!',lang:'it-IT',syl:'her/0/.2 ku/2/.15 les/3/.25 in/2/.15 wik/3/.2 tus/0/.6'},
   hannibal:{tts:'Hannibal!',lang:'it-IT',syl:'han/0/.2 ni/3/.15 baal/2/.8'},
-  gaul:{syl:'a/0/.3 u/5/.2 a/7/.2 u/5/.2 aa/9/.9',hi:true}};
+  gaul:{syl:'a/0/.3 u/5/.2 a/7/.2 u/5/.2 aa/9/.9',hi:true},
+  roma:{tts:'Roma! Roma!',lang:'it-IT',syl:'ro/0/.18 maa/3/.5 ro/0/.18 maa/5/.7'},
+  vive:{tts:"Vive l'Empereur!",lang:'fr-FR',syl:'wi/0/.14 we/2/.2 lam/3/.15 pe/2/.15 roer/5/.8'},feu:{tts:'Feu!',lang:'fr-FR',cmd:true}};
 // kto co krzyczy: szarża, zwarcie, rozkaz salwy, zwycięstwo (wg frakcji, z wyjątkami dla jednostek)
 const FCRY={
   union:{charge:'hurrah_en',fire:'fire_en',win:'hurrah_en'},confed:{charge:'rebel',fire:'fire_en',win:'rebel'},
@@ -2567,8 +2691,9 @@ const FCRY={
   rp_k:{charge:'bij',fire:'pal',win:'wiwat'},rp_l:{charge:'bij',fire:'pal',win:'wiwat'},rp_c:{charge:'bij',fire:'pal',win:'wiwat'},
   swe:{charge:'gud',fire:'fyr',win:'gud'},
   mos:{charge:'ura',fire:'pali',win:'ura',unit:{mus:{charge:'gud',fire:'fyr'},pik:{charge:'gud'},rajt:{charge:'gud',fire:'fyr'}}},
-  tur:{charge:'allah',fire:'ates',win:'allah'}};
-const facId=s=>(VARIANTS[G.variant]||{}).fac?VARIANTS[G.variant].fac[s]:null;
+  tur:{charge:'allah',fire:'ates',win:'allah'},
+  rom:{charge:'roma',win:'roma'},brit:{charge:'hurrah_en',fire:'fire_en',win:'hurrah_en'},fr:{charge:'vive',fire:'feu',win:'vive'}};
+const facId=s=>{const V=VARIANTS[G.variant],f=V&&V.fac?V.fac[s]:null;return f&&FACTIONS[f]&&FACTIONS[f].cry||f;};
 function cryKey(u,ev){const F=FCRY[facId(u.side)];if(!F)return null;const U=F.unit&&F.unit[u.key];return(U&&U[ev])||F[ev]||null;}
 const VOXCD={side:[0,0],cmd:[0,0],bog:-99};
 function cry(key,x,o={}){const C=CRY[key];if(!C)return;

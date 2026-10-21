@@ -89,7 +89,9 @@ const CRY={
   venus:{tts:'Venus Victrix!',lang:'it-IT',syl:'we/0/.2 nus/2/.25 wik/3/.2 triks/2/.6'},
   hercules:{tts:'Hercules Invictus!',lang:'it-IT',syl:'her/0/.2 ku/2/.15 les/3/.25 in/2/.15 wik/3/.2 tus/0/.6'},
   hannibal:{tts:'Hannibal!',lang:'it-IT',syl:'han/0/.2 ni/3/.15 baal/2/.8'},
-  gaul:{syl:'a/0/.3 u/5/.2 a/7/.2 u/5/.2 aa/9/.9',hi:true}};
+  gaul:{syl:'a/0/.3 u/5/.2 a/7/.2 u/5/.2 aa/9/.9',hi:true},
+  roma:{tts:'Roma! Roma!',lang:'it-IT',syl:'ro/0/.18 maa/3/.5 ro/0/.18 maa/5/.7'},
+  vive:{tts:"Vive l'Empereur!",lang:'fr-FR',syl:'wi/0/.14 we/2/.2 lam/3/.15 pe/2/.15 roer/5/.8'},feu:{tts:'Feu!',lang:'fr-FR',cmd:true}};
 // kto co krzyczy: szarża, zwarcie, rozkaz salwy, zwycięstwo (wg frakcji, z wyjątkami dla jednostek)
 const FCRY={
   union:{charge:'hurrah_en',fire:'fire_en',win:'hurrah_en'},confed:{charge:'rebel',fire:'fire_en',win:'rebel'},
@@ -98,8 +100,9 @@ const FCRY={
   rp_k:{charge:'bij',fire:'pal',win:'wiwat'},rp_l:{charge:'bij',fire:'pal',win:'wiwat'},rp_c:{charge:'bij',fire:'pal',win:'wiwat'},
   swe:{charge:'gud',fire:'fyr',win:'gud'},
   mos:{charge:'ura',fire:'pali',win:'ura',unit:{mus:{charge:'gud',fire:'fyr'},pik:{charge:'gud'},rajt:{charge:'gud',fire:'fyr'}}},
-  tur:{charge:'allah',fire:'ates',win:'allah'}};
-const facId=s=>(VARIANTS[G.variant]||{}).fac?VARIANTS[G.variant].fac[s]:null;
+  tur:{charge:'allah',fire:'ates',win:'allah'},
+  rom:{charge:'roma',win:'roma'},brit:{charge:'hurrah_en',fire:'fire_en',win:'hurrah_en'},fr:{charge:'vive',fire:'feu',win:'vive'}};
+const facId=s=>{const V=VARIANTS[G.variant],f=V&&V.fac?V.fac[s]:null;return f&&FACTIONS[f]&&FACTIONS[f].cry||f;};
 function cryKey(u,ev){const F=FCRY[facId(u.side)];if(!F)return null;const U=F.unit&&F.unit[u.key];return(U&&U[ev])||F[ev]||null;}
 const VOXCD={side:[0,0],cmd:[0,0],bog:-99};
 function cry(key,x,o={}){const C=CRY[key];if(!C)return;

@@ -139,7 +139,7 @@ MAPS.push(
   m.sym('rot');}}
 );
 // pola minowe: prostokąty z lewej połowy + ich lustrzane/obrócone odbicia
-function mineRects(def){const out=[];for(const[x,y,w,h,n]of def.mines||[]){out.push([x,y,w,h,n]);out.push([W-x-w,def.sym==='rot'?H-y-h:y,w,h,n]);}return out;}
+function mineRects(def){const out=[];for(const[x,y,w,h,n]of def.mines||[]){out.push([x,y,w,h,n]);if(!def.minesOne)out.push([W-x-w,def.sym==='rot'?H-y-h:y,w,h,n]);}return out;}
 function setTile(x,y,v){const tx=Math.floor(x/TS),ty=Math.floor(y/TS);if(tx<0||ty<0||tx>=GW||ty>=GH)return;MAP.t[ty*GW+tx]=v;}
 let MAP=null;const MAPDATA=[];
 function buildMap(i){const d=MAPS[i],m=new MapB(d.seed);d.build(m);return{t:m.t,h:m.h,def:d,idx:i};}

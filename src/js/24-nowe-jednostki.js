@@ -8,7 +8,7 @@ Object.assign(KD,{
   lib:{base:'inf',men:8,name:'Piechota libijska',unit:'Oddział libijski',pick:'x',pos:[165,270],ai:'leg',beh:'leg',label:'Piechurzy',slots:legSlots2,forms:['line','phalanx'],init:u=>{u.rf='line';},
     status:u=>`${RF_NAME[u.rf]}${u.formT>0?' (zmiana)':''} · A: szyk`},
   sli:{base:'inf',men:6,name:'Procarze',unit:'Procarze',pick:'x',pos:[105,305],ai:'arc',beh:'arc',label:'Procarze',init:u=>{u.aimMin=60;u.aimMax=300;u.reloadMax=2.5;u.ammoKind='sling';},
-    status:u=>u.aiming?`Odległość ${Math.round((u.aimR-60)/240*100)}% – puść A`:u.reload>0?'Zakładają kamienie…':'Gotowi – trzymaj A, puść = salwa'},
+    status:u=>u.aiming?`Odległość ${Math.round((u.aimR-60)/240*100)}% – puść A`:u.reload>0?'Zakładają kamienie…':'A: na wprost · trzymaj: łukiem'},
   num:{base:'cav',men:4,name:'Jazda numidyjska',unit:'Jazda numidyjska',pick:'y',pos:[72,'cav'],ai:'num',beh:'num',label:'Jeźdźcy',
     status:u=>u.reload>0?'Sięgają po oszczepy…':'Ruch w każdą stronę · A: rzut oszczepami'},
   ele:{base:'ele',men:1,name:'Słonie bojowe',unit:'Słoń bojowy',pick:'y',pos:[96,'cav'],ai:'ele',beh:'ele',label:'Wytrzymałość',init:u=>{u.hp=4;u.panicT=0;u.chargeT=0;u.tiredT=0;},
@@ -191,7 +191,7 @@ function drawElephant(u,x,y){x=Math.round(x);y=Math.round(y);const dir=clDir(u.s
   if(u.panicT>0){r(13,-24,2,7,G1);r(12,-25,2,1,G1);}else{r(12,-10,2,7,G1);r(11,-4,2,1,G1);}
   r(-7,-24,11,6,S.coat);r(-7,-24,11,1,S.flag[1]);r(3,-27,2,2,'#c99a6e');r(-4,-32,1,9,'#6a4a2a');r(-4,-33,1,1,'#c8ccd0');}
 PROJDRAW.sling=function(p,x,y){ctx.fillStyle='rgba(0,0,0,.3)';ctx.fillRect(Math.round(x),Math.round(y),1,1);ctx.fillStyle='#8a867c';ctx.fillRect(Math.round(x),Math.round(y-p.h),2,1);};
-BULLET_LOOK.jav=['#6a4a2a',5,1];BULLET_LOOK.atr=['#fff3c4',4,1];
+BULLET_LOOK.jav=['#6a4a2a',5,1];BULLET_LOOK.arrowf=['#4e3520',5,1];BULLET_LOOK.slingf=['#8a867c',2,1];BULLET_LOOK.atr=['#fff3c4',4,1];
 const _eraChip=eraChip;
 function eraChip2(type,x,y,col){ctx.fillStyle=col;
   switch(type){case'lib':ctx.fillRect(x+1,y+1,6,6);ctx.fillRect(x+7,y-2,1,11);return true;

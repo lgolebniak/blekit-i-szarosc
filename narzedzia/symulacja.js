@@ -3,7 +3,7 @@ const {chromium}=require(process.env.PW||'playwright');require('fs').mkdirSync(r
   const b=await chromium.launch();const pg=await b.newPage({viewport:{width:1280,height:760}});
   const errs=[];pg.on('pageerror',e=>errs.push('PAGEERR '+e.message));pg.on('console',m=>{if(m.type()==='error')errs.push('CONSOLE '+m.text());});
   await pg.goto('file://'+require('path').resolve(__dirname,'../index.html'));await pg.waitForTimeout(3500);
-  for(const v of ['acw','rome','rome_c','rome_g','ww2','kirch','klusz','choc']){
+  const lista=await pg.evaluate(()=>VAR_ORDER.slice());for(const v of lista){
     const r=await pg.evaluate(async(v)=>{
       setVariant(v);G.mode='cpu';
       for(let i=0;i<MAPS.length;i++)prepMap(i);

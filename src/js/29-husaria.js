@@ -55,13 +55,13 @@ Object.assign(FACTIONS,{
 });
 ERAS.pl17={name:'Husaria',years:'1605 – 1673',keys:[],presets:[],max:{},info:PL17INFO,hint:'X piechota · Y jazda · B działa · RT klin'};
 Object.assign(VARIANTS,{
-  kirch:{era:'pl17',fac:['rp_k','swe'],sub:'Kircholm · 27 września 1605 · Chodkiewicz kontra Karol IX',hud:'Kircholm 1605',
+  kirch:{era:'pl17',scen:true,fac:['rp_k','swe'],sub:'Kircholm · 27 września 1605 · Chodkiewicz kontra Karol IX',hud:'Kircholm 1605',
     tip:'Szwedzi stoją na wzgórzach – wywab ich w dół, potem husaria!',
     hist:'Historycznie: 3,5 tys. żołnierzy Chodkiewicza rozgromiło ponad 11 tys. Szwedów. Szwedzi stracili do 9 tys., Polacy ok. 100.'},
-  klusz:{era:'pl17',fac:['rp_l','mos'],sub:'Kłuszyn · 4 lipca 1610 · Żółkiewski kontra Szujski i De la Gardie',hud:'Kłuszyn 1610',
+  klusz:{era:'pl17',scen:true,fac:['rp_l','mos'],sub:'Kłuszyn · 4 lipca 1610 · Żółkiewski kontra Szujski i De la Gardie',hud:'Kłuszyn 1610',
     tip:'Szukaj luk w płotach – tam wpadnie husaria.',
     hist:'Historycznie: ok. 6,5 tys. żołnierzy Żółkiewskiego pobiło ok. 35 tys. Rosjan i najemników – husaria szarżowała wielokrotnie.'},
-  choc:{era:'pl17',fac:['rp_c','tur'],sub:'Chocim · 11 listopada 1673 · Sobieski kontra Husajn Pasza',hud:'Chocim 1673',
+  choc:{era:'pl17',scen:true,fac:['rp_c','tur'],sub:'Chocim · 11 listopada 1673 · Sobieski kontra Husajn Pasza',hud:'Chocim 1673',
     tip:'Hajducy przy palisadzie robią wyłom, działa też. Potem husaria!',
     hist:'Historycznie: Sobieski zdobył obóz turecki (po ok. 30 tys. żołnierzy po obu stronach). Zginęło kilkanaście tysięcy Turków.'}});
 VAR_ORDER.push('kirch','klusz','choc');

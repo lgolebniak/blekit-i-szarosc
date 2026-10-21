@@ -77,7 +77,7 @@ function updProjs(dt){
 function impact(p){if(p.kind==='tshell')return tshellImpact(p);if(p.kind==='arrow'||p.kind==='sling')return arrowImpact(p);if(p.kind==='gren')return grenImpact(p);if(p.smoke)return smokeCloud(p.tx,p.ty);const t=tAt(p.tx,p.ty);
   if(t===T.WATER||t===T.FORD){for(let i=0;i<10;i++)parts.push({k:'dirt',x:p.tx,y:p.ty,z:0,vx:(R()-.5)*30,vy:(R()-.5)*16,vz:60+R()*60,life:0,max:.8,c:'#bcd6e2'});AU.impact(p.tx,true);}
   else{for(let i=0;i<12;i++)parts.push({k:'dirt',x:p.tx,y:p.ty,z:0,vx:(R()-.5)*50,vy:(R()-.5)*30,vz:50+R()*70,life:0,max:.9,c:R()<.5?'#5a4630':'#7a6446'});
-    if(t===T.BRIDGE)breakBridge(p.tx,p.ty,p.side);else if(t===T.PALISADE||t===T.FENCE)breakPalisade(p.tx,p.ty);else if(t===T.WIRE)crushWire(p.tx,p.ty);else if(t!==T.HOUSE&&t!==T.ROCK)decalCrater(p.tx,p.ty);if(G.era==='ww2')areaObstacleHit(p.tx,p.ty,14,12);AU.impact(p.tx);G.shake=Math.max(G.shake,1.5);}
+    if(t===T.BRIDGE)breakBridge(p.tx,p.ty,p.side);else if(t===T.PALISADE||t===T.FENCE)breakPalisade(p.tx,p.ty);else if(t===T.WIRE)crushWire(p.tx,p.ty);else if(t!==T.HOUSE&&t!==T.ROCK)decalCrater(p.tx,p.ty);areaObstacleHit(p.tx,p.ty,14,12,p.src);AU.impact(p.tx);G.shake=Math.max(G.shake,1.5);}
   const RK=G.rules==='classic'&&p.rr?10*(p.rr<300?2:p.rr<600?1.5:1):9;
   for(const e of units){if(e.dead||e.gone)continue;const de=dist(p.tx,p.ty,e.x,e.y);if(de>55+RK)continue;
     if(e.type==='tank'){if(de<RK+6)tankHit(e,(p.ap||.35)*eff(p.src,e.key),p.side,p.sx,p.sy);continue;}

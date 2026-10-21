@@ -49,16 +49,23 @@ const AUTO={
 function autoDefend(u,dt){if(G.era!=='ww2'||G.state!=='battle'||u.state==='enter'||u.dead)return;const f=AUTO[u.key];if(f)f(u,dt);}
 
 // --- przeszkody niszczone ostrzałem na wprost; granaty i moździerze lecą nad nimi ---
-const OBST_HP={[T.SANDBAG]:12,[T.RUINS]:18,[T.HOUSE]:30,[T.WALL]:16};
-const BULLET_DMG={mg:.5,rifle:1,musket:1,atr:2,shell:6,bolt:2,pilum:.5,jav:.5};
-function obstacleHit(x,y,dmg){if(G.era!=='ww2')return;const tx=Math.floor(x/TS),ty=Math.floor(y/TS);if(tx<0||ty<0||tx>=GW||ty>=GH)return;
-  const i=ty*GW+tx,t=MAP.t[i],hp=OBST_HP[t];if(!hp)return;if(!MAP.thp)MAP.thp=new Float32Array(GW*GH);
-  const before=MAP.thp[i];MAP.thp[i]+=dmg;const g=G.tctx,X=tx*TS,Y=ty*TS;
+// przeszkody dla strzałów na wprost (wszystkie epoki): szansa zatrzymania kuli przy wejściu na pole, wytrzymałość, co zostaje po zniszczeniu
+// skała: zatrzymuje wszystko, kruszą ją tylko armaty i czołg; dom: zatrzymuje kule, aż ostrzał zrobi z niego ruinę;
+// las i zboże: każde pole zatrzymuje część kul – przez pas lasu nie przechodzi zwykle od 1/3 do 2/3
+const OBST={[T.ROCK]:{stop:1,hp:40,heavy:true,to:T.RUINS},[T.HOUSE]:{stop:1,hp:30,to:T.RUINS},[T.WALL]:{stop:.6,hp:16,to:T.GRASS},
+  [T.SANDBAG]:{stop:.6,hp:12,to:T.GRASS},[T.PALISADE]:{stop:.5,hp:10,to:T.GRASS},[T.FENCE]:{stop:.3,hp:6,to:T.GRASS},[T.RUINS]:{stop:.35},
+  [T.FOREST]:{stop:.15,soft:true},[T.WHEAT]:{stop:.06,soft:true}};
+const HEAVY=new Set(['art','dz','at','tank']);
+const BULLET_DMG={mg:.5,rifle:1,musket:1,pistol:.5,atr:2,shell:6,bolt:2,pilum:.5,jav:.5,arrowf:.3,slingf:.5};
+function obstacleHit(x,y,dmg,src){const tx=Math.floor(x/TS),ty=Math.floor(y/TS);if(tx<0||ty<0||tx>=GW||ty>=GH)return;
+  const i=ty*GW+tx,t=MAP.t[i],O=OBST[t];if(!O||!O.hp)return;if(!MAP.thp)MAP.thp=new Float32Array(GW*GH);
   if(R()<.6)parts.push({k:'dust',x:x,y:y-4,vx:(R()-.5)*20,vy:-10,life:0,max:.4,c:t===T.SANDBAG?'190,170,120':'150,140,125'});
+  if(O.heavy&&!HEAVY.has(src))return;
+  const hp=O.hp,before=MAP.thp[i];MAP.thp[i]+=dmg;const g=G.tctx,X=tx*TS,Y=ty*TS;
   if(g&&before<hp*.5&&MAP.thp[i]>=hp*.5){for(let k=0;k<4;k++){g.fillStyle='rgba(30,24,16,.8)';g.fillRect(X+Math.floor(R()*10),Y+Math.floor(R()*9),2,1);}}
-  if(MAP.thp[i]>=hp){MAP.thp[i]=0;MAP.t[i]=t===T.HOUSE?T.RUINS:T.GRASS;
+  if(MAP.thp[i]>=hp){MAP.thp[i]=0;MAP.t[i]=O.to;
     for(let k=0;k<10;k++)parts.push({k:'dirt',x:X+6,y:Y+6,z:2,vx:(R()-.5)*50,vy:(R()-.5)*30,vz:40+R()*50,life:0,max:.8,c:t===T.SANDBAG?'#b8a67a':'#8a847a'});AU.impact(X+6,true);
-    if(g){if(t===T.HOUSE){g.fillStyle='rgba(60,56,50,.85)';g.fillRect(X,Y-6,TS,TS+6);for(let k=0;k<8;k++){g.fillStyle=R()<.5?'#8a8278':'#5a524a';g.fillRect(X+Math.floor(R()*10),Y-4+Math.floor(R()*14),3,2);}}
+    if(g){if(t===T.HOUSE||t===T.ROCK){g.fillStyle=t===T.ROCK?'rgba(96,90,80,.9)':'rgba(60,56,50,.85)';g.fillRect(X,t===T.HOUSE?Y-6:Y,TS,TS+(t===T.HOUSE?6:0));for(let k=0;k<8;k++){g.fillStyle=R()<.5?'#8a8278':'#5a524a';g.fillRect(X+Math.floor(R()*10),Y-(t===T.HOUSE?4:0)+Math.floor(R()*12),3,2);}}
       else{g.fillStyle='rgba(70,82,44,.9)';g.fillRect(X,Y,TS,TS);for(let k=0;k<7;k++){g.fillStyle=t===T.SANDBAG?(R()<.5?'#b8a67a':'#8a7a52'):(R()<.5?'#8a847a':'#6a645a');g.fillRect(X+Math.floor(R()*10),Y+Math.floor(R()*10),2+Math.floor(R()*2),1+Math.floor(R()*2));}}}}}
-function areaObstacleHit(x,y,Rr,dmg){if(G.era!=='ww2')return;for(let dy=-Rr;dy<=Rr;dy+=TS/2)for(let dx=-Rr;dx<=Rr;dx+=TS/2){if(dx*dx+dy*dy<=Rr*Rr)obstacleHit(x+dx,y+dy,dmg/4);}}
+function areaObstacleHit(x,y,Rr,dmg,src){for(let dy=-Rr;dy<=Rr;dy+=TS/2)for(let dx=-Rr;dx<=Rr;dx+=TS/2){if(dx*dx+dy*dy<=Rr*Rr)obstacleHit(x+dx,y+dy,dmg/4,src);}}
 

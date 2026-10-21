@@ -41,7 +41,7 @@ function blast(x,y,Rr,k,side,src){for(let i=0;i<10;i++)parts.push({k:'dirt',x,y,
   for(const e of units){if(e.dead||e.gone||e.type==='tank'||dist(x,y,e.x,e.y)>Rr+50)continue;
     for(const m of e.men){if(!m.alive)continue;const d=dist(x,y,m.x,m.y);if(d<Rr&&R()<k*(1-.4*d/Rr)*eff(src,e.key)){killMan(e,m,'ball');if(side>=0&&e.side!==side)G.stats[side].hits++;}}}
   for(let dy=-Rr;dy<=Rr;dy+=TS)for(let dx=-Rr;dx<=Rr;dx+=TS)if(tAt(x+dx,y+dy)===T.WIRE)crushWire(x+dx,y+dy);
-  areaObstacleHit(x,y,Math.max(Rr,10),8);}
+  areaObstacleHit(x,y,Math.max(Rr,10),8,src);}
 function grenImpact(p){blast(p.tx,p.ty,14,.75,p.side,p.src);
   for(const e of units){if(e.type!=='tank'||e.dead||e.gone)continue;if(dist(p.tx,p.ty,e.x,e.y)<14&&!e.track&&R()<.6){e.track=true;msg(e.side,`${unitName(e)}: granat zerwał gąsienicę!`);}}}
 function smokeCloud(x,y){for(let i=0;i<24;i++)parts.push({k:'smoke',x:x+(R()-.5)*40,y:y+(R()-.5)*30,vx:G.wind.x*4+(R()-.5)*3,vy:G.wind.y*4+(R()-.5)*3,r:6+R()*5,g:6,life:0,max:9+R()*3,a:.7});

@@ -73,8 +73,8 @@ function isFront(e,fromX){return(fromX-e.x)*clDir(e.side)>0;}
 function updBullets(dt){
   for(let i=bullets.length-1;i>=0;i--){const b=bullets[i],stp=Math.hypot(b.vx,b.vy||0)*dt;b.x+=b.vx*dt;b.y+=(b.vy||0)*dt;b.left-=stp;b.dist=(b.dist||0)+stp;
     let kill=b.left<=0||b.x<-5||b.x>W+5||b.y<28||b.y>H;
-    const t=tAt(b.x,b.y);if(G.era==='ww2'){if(t===T.ROCK)kill=true;else if(OBST_HP[t]&&b.dist>24&&!b.ob){b.ob=true;obstacleHit(b.x,b.y,BULLET_DMG[b.kind]||1);if(t===T.HOUSE||t===T.WALL||R()<.5)kill=true;}else if(!OBST_HP[t])b.ob=false;}
-    else{if(t===T.ROCK||t===T.HOUSE)kill=true;const ob=t===T.WALL||t===T.PALISADE||t===T.SANDBAG||t===T.RUINS||t===T.FENCE;if(ob&&!b.wall&&b.dist>16){b.wall=true;if(R()<(t===T.RUINS?.4:t===T.FENCE?.3:.5))kill=true;}else if(!ob)b.wall=false;}
+    const t=tAt(b.x,b.y),ti=Math.floor(b.y/TS)*GW+Math.floor(b.x/TS);
+    if(ti!==b.ti){b.ti=ti;const O=OBST[t];if(O&&b.dist>14&&R()<O.stop*(b.boom&&O.soft?.5:1)){kill=true;obstacleHit(b.x,b.y,BULLET_DMG[b.kind]||1,b.src);}}
     if(!kill&&G.era==='ww2'&&smokeAt(b.x,b.y)>3&&R()<dt*5)kill=true;
     if(!kill)for(const e of units){if(e.side===b.side||e.dead||e.gone)continue;if(Math.abs(e.y-b.y)>80||Math.abs(e.x-b.x)>80)continue;
       if(e.type==='tank'){if(Math.abs(e.x-b.x)<13&&Math.abs(e.y-b.y)<7){kill=true;if(b.ap)tankHit(e,(typeof b.ap==='function'?b.ap(b):b.ap)*eff(b.src,e.key)*evade(e),b.side,b.x-b.vx,b.y-(b.vy||0));else{parts.push({k:'spark',x:b.x,y:b.y-8,vx:-b.vx*.05,vy:-20,life:0,max:.2});}break;}continue;}
@@ -256,7 +256,7 @@ function cpuClassic(u,dt){const c=G.cpu;const idle={x:0,y:0,A:false};if(c.react>
   const wantEl=tg.type==='art'?52:18,ey=u.fixedElev?0:Math.abs(wantEl-u.elev)>3?(wantEl>u.elev?-1:1):0;
   const want=clamp(Math.abs(px-u.x)*(1+c.aimErr*.6),mn+5,mr-3);return{x:0,y:ey,A:ey!==0||u.aimR<want||u.aimDir<0};}
 /* --- przebieg --- */
-function clStart(){units=[];uid=1;bullets=[];
+function clStart(){units=[];uid=1;bullets=[];G.evDone={};
   G.res=[0,1].map(s=>{const r={};for(const k of TY(s))r[k]=G.army[s][k]||0;return r;});G.spawnQ=[];G.cavSlot=[0,0];
   for(const s of[0,1])for(const k of TY(s)){clSpawn(s,k,0);if(KD[k].two)clSpawn(s,k,1);}
   if(MAP.def.mines)layMines();else G.mines=[];
@@ -277,7 +277,7 @@ function clStep(dt){G.t+=dt;
   for(let p=0;p<2;p++){const u=clSel(p);if(!u||u.state==='enter')continue;
     if(isCPU(p))inputs[u.id]=cpuClassic(u,dt);else{const c=input.ctl[p];inputs[u.id]={x:c.lx,y:c.ly,A:acw?(c.b.a||c.b.rt):c.b.a,R:!acw&&c.b.rt,human:true};}}
   for(const u of units)clUpdate(u,dt,inputs[u.id]||null);
-  trackVel(dt);updBullets(dt);clMelee(dt);updProjs(dt);clSpawnTick(dt);eraTick3(dt);
+  trackVel(dt);updBullets(dt);clMelee(dt);updProjs(dt);clSpawnTick(dt);eraTick3(dt);scenTick(dt);
   for(let p=0;p<2;p++)clAutoSel(p);
   if(G.state==='battle')clVictory();}
 /* --- grafika trybu klasycznego --- */
