@@ -7,7 +7,7 @@ function noAmmo(u){if(!(u.noAmmoT>G.t)){msg(u.side,`${unitName(u)}: brak amunicj
 function useShot(u){if(u.shots===undefined)return true;if(u.shots<=0){noAmmo(u);return false;}u.shots--;if(u.shots===0)msg(u.side,`${unitName(u)}: ostatni pocisk!`);return true;}
 // czołg: trzymasz A – pasek odległości (60–460), puszczasz – pocisk spada w tej odległości w kierunku lufy
 function tankFire(u,range,manual){if(u.reload>0||G.state!=='battle')return false;if(!useShot(u))return false;
-  u.reload=3.2;u.firedT=3;u.recoil=1;const c=Math.cos(u.hd),s=Math.sin(u.hd),bx=u.x+c*18,by=u.y+s*10;
+  u.reload=2.7;u.firedT=3;u.recoil=1;const c=Math.cos(u.hd),s=Math.sin(u.hd),bx=u.x+c*18,by=u.y+s*10;
   const rr=clamp(range,u.aimMin,u.aimMax)*(1+(R()-.5)*(manual?.04:.12)),a=u.hd+(R()-.5)*(manual?.02:.05);
   projs.push({kind:'tshell',x:bx,y:by,sx:bx,sy:by,tx:u.x+Math.cos(a)*rr,ty:u.y+Math.sin(a)*rr,t:0,T:.15+rr/900,H:Math.max(4,rr*.04),h:0,a,bounce:0,side:u.side,src:u.key,hit:new Set(),low:false,rr,fromX:u.x,fromY:u.y});
   parts.push({k:'flash',x:bx,y:by-12,life:0,max:.1,big:1});addSmoke(bx,by-12,3,true);AU.cannon(u.x);G.shake=Math.max(G.shake,2);G.stats[u.side].shots++;
@@ -26,9 +26,9 @@ function tankGun(u,dt,I){const can=u.reload<=0&&(u.shots===undefined||u.shots>0)
   if(st===0){if(I.Ap){if(!can){if(I.hum){AU.bad();if(u.shots===0)noAmmo(u);}return;}u.tAim=1;u.aimA=clamp(relCone(u,u.hd),-CONE,CONE);if(I.hum)AU.ui();}return;}
   if(st===1){u.aimA=clamp(u.aimA+I.y*1.3*dt,-CONE,CONE);if(!I.A){u.tAim=2;u.tWait=0;}return;}
   if(st===2){u.tWait+=dt;if(Math.hypot(I.x,I.y)>.6||u.tWait>5){u.tAim=0;return;}if(I.Ap&&can){u.tAim=3;u.aiming=true;u.aimDir=1;u.aimR=u.aimMin;}return;}
-  if(I.A){u.aimR+=u.aimDir*300*dt;if(u.aimR>u.aimMax){u.aimR=u.aimMax;u.aimDir=-1;}if(u.aimR<u.aimMin){u.aimR=u.aimMin;u.aimDir=1;}}
+  if(I.A){u.aimR+=u.aimDir*390*dt;if(u.aimR>u.aimMax){u.aimR=u.aimMax;u.aimDir=-1;}if(u.aimR<u.aimMin){u.aimR=u.aimMin;u.aimDir=1;}}
   else{u.tAim=0;u.aiming=false;u.hd=tankAimH(u);tankFire(u,u.aimR,true);}}
-KD.tank.init=u=>{u.reloadMax=3.2;u.track=false;u.hd=u.side===0?0:Math.PI;u.aimMin=60;u.aimMax=460;};
+KD.tank.init=u=>{u.reloadMax=2.7;u.track=false;u.hd=u.side===0?0:Math.PI;u.aimMin=60;u.aimMax=460;};
 KD.tank.status=u=>u.tAim===1?'KIERUNEK: drążek góra–dół, puść A':u.tAim===2?'A: trzymaj = odległość · drążek = anuluj':u.tAim===3?`Odległość ${Math.round(u.aimR)} kroków – puść A`:`${u.reload>0?'Ładowanie działa':'Trzymaj A = kierunek strzału'} · RT: km`;
 // uzupełnianie amunicji: czołg i rusznica w swojej strefie, na postoju
 const _eraTick2=eraTick2;

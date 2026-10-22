@@ -11,17 +11,17 @@ const KD={
   inf:{base:'inf',men:6,name:'Piechota',unit:'Pułk',pick:'x',pos:[150,270],ai:'flat',beh:'acwInf',label:'Ludzie'},
   cav:{base:'cav',men:4,name:'Kawaleria',unit:'Szwadron',pick:'y',pos:[72,'cav'],ai:'cav',beh:'acwSabre',label:'Jeźdźcy'},
   lan:{base:'cav',men:4,lance:true,name:'Ułani',unit:'Szwadron ułanów',pick:'y',pos:[72,'cav'],ai:'lance',beh:'acwLance',label:'Jeźdźcy'},
-  art:{base:'art',men:3,name:'Artyleria',unit:'Bateria',pick:'b',pos:[44,'art'],two:true,ai:'artArc',beh:'acwCannon',label:'Kanonierzy'},
+  art:{base:'art',men:3,name:'Artyleria',unit:'Bateria',pick:'b',pos:[44,'art'],two:true,ai:'artArc',beh:'acwCannon',label:'Kanonierzy',init:u=>{u.reloadBase=4.6;}},
   // --- Rzym ---
   leg:{base:'inf',men:8,name:'Legioniści',unit:'Kohorta',pick:'x',pos:[165,270],ai:'leg',beh:'leg',label:'Legioniści',slots:legSlots,init:u=>{u.rf='line';},
     status:u=>`${RF_NAME[u.rf]}${u.formT>0?' (zmiana)':''} · A: szyk · RT: pilum${u.cd2>0?` za ${Math.ceil(u.cd2)} s`:''}`},
   arc:{base:'inf',men:6,name:'Łucznicy',unit:'Oddział łuczników',pick:'x',pos:[100,150],ai:'arc',beh:'arc',label:'Łucznicy',init:u=>{u.aimMin=60;u.aimMax=360;u.reloadMax=3;},
     status:u=>u.aiming?`Odległość ${Math.round((u.aimR-60)/300*100)}% – puść A`:u.reload>0?'Napinają łuki…':'A: na wprost · trzymaj: łukiem'},
   eq:{base:'cav',men:4,name:'Jazda',unit:'Ala jazdy',pick:'y',pos:[72,'cav'],ai:'cav',beh:'acwSabre',label:'Jeźdźcy'},
-  bal:{base:'art',men:2,name:'Balista',unit:'Balista',pick:'b',pos:[44,170],ai:'artFlat',beh:'bal',label:'Obsługa',init:u=>{u.reloadMax=3.5;u.maxR=820;},
+  bal:{base:'art',men:2,name:'Balista',unit:'Balista',pick:'b',pos:[44,170],ai:'artFlat',beh:'bal',label:'Obsługa',init:u=>{u.reloadMax=3;u.maxR=600;},
     status:u=>u.reload>0?'Napinanie cięciwy…':'Gotowa – A: bełt na wprost (przebija szereg)'},
   ona:{base:'art',men:3,name:'Onager',unit:'Onager',pick:'b',pos:[44,370],ai:'artArc',beh:'acwCannon',label:'Obsługa',
-    init:u=>{u.fixedElev=60;u.minR=150;u.maxR=620;u.reloadBase=10;u.noPowder=true;u.projKind='stone';u.aimSpd=240;}},
+    init:u=>{u.fixedElev=60;u.minR=150;u.maxR=620;u.reloadBase=8.5;u.noPowder=true;u.projKind='stone';u.aimSpd=310;}},
   // --- Wrzesień 1939 ---
   rif:{base:'inf',men:6,name:'Piechota',unit:'Pluton',pick:'x',pos:[165,270],ai:'flat',beh:'rif',label:'Żołnierze',range:230,gren:true,init:u=>{u.reloadMax=1.7;},
     status:u=>`${u.supT>0?'PRZYGWOŻDŻENI · ':''}${u.coneOn?'SKOS – drążek góra–dół, puść A':u.reload>0?'Przeładowanie':'A: ogień · trzymaj = skos'} · RT: granat${u.cd2>0?` (${Math.ceil(u.cd2)} s)`:''}`},
@@ -29,10 +29,10 @@ const KD={
     status:u=>u.over?'Lufa przegrzana – czekaj':u.firing?'SERIA – drążek sieje na boki':'Trzymaj A = seria'},
   tank:{base:'tank',men:1,name:'Czołg',unit:'Czołg',pick:'y',pos:[84,400],ai:'tank',beh:'tank',label:'Pancerz',init:u=>{u.reloadMax=3.2;u.track=false;},
     status:u=>`${u.reload>0?'Ładowanie działa':'A: działo'} · RT: km`},
-  at:{base:'art',men:3,name:'Działo ppanc',unit:'Działo ppanc',pick:'b',pos:[44,170],ai:'artFlat',beh:'at',label:'Obsługa',init:u=>{u.reloadMax=2.6;u.maxR=820;},
+  at:{base:'art',men:3,name:'Działo ppanc',unit:'Działo ppanc',pick:'b',pos:[44,170],ai:'artFlat',beh:'at',label:'Obsługa',init:u=>{u.reloadMax=2.3;u.maxR=600;},
     status:u=>u.coneOn?'SKOS – drążek góra–dół, puść A':u.reload>0?'Ładowanie':'A: strzał · trzymaj = skos'},
   mor:{base:'art',men:2,name:'Moździerz',unit:'Moździerz',pick:'b',pos:[44,370],ai:'artArc',beh:'acwCannon',label:'Obsługa',mor:true,
-    init:u=>{u.fixedElev=70;u.minR=90;u.maxR=600;u.reloadBase=4.5;u.projKind='mshell';u.ammo2='he';u.aimSpd=300;},
+    init:u=>{u.fixedElev=70;u.minR=90;u.maxR=600;u.reloadBase=3.8;u.projKind='mshell';u.ammo2='he';u.aimSpd=390;},
     status:u=>acwStatus(u)+` · ${u.ammo2==='smoke'?'DYM':'odłamkowy'} (RT)`}
 };
 const ERAS={
@@ -53,7 +53,7 @@ const ERAS={
     info:{rif:['Piechota','6 żołnierzy · karabiny, granaty','A: ogień na wprost · RT: granat (psuje gąsienice).'],mg:['Ckm','3 ludzi · ciągła seria','Trzymaj A i prowadź serię. Przygważdża piechotę.'],
       tank:['Czołg','pancerz mocny z przodu','A: działo · RT: km. Rozjeżdża piechotę.'],at:['Działo ppanc','strzał płaski na wprost','Z bliska przebija czołg od przodu.'],
       mor:['Moździerz','wysoki tor, odłamki lub dym','RT: zmiana amunicji. Dym zasłania ogień.']},
-    hint:'X piechota/ckm/rusznica · Y czołg · B działo/moździerz · RT',
+    hint:'X piechota · Y czołg · B działa · LT nalot',
     sides:[{name:'Polacy',gen:'Polaków',coat:'#6d6b3e',coatD:'#50502d',pants:'#5f5e36',hat:'#585a33',ui:'#ff7a7a',uiD:'#8a2a2a',flag:['#ffffff','#d4213d'],veh:'#5e5a38',helm:'pl'},
            {name:'Niemcy',gen:'Niemców',coat:'#5e6655',coatD:'#454c40',pants:'#4f5648',hat:'#4c5149',ui:'#c8d4c0',uiD:'#4a5048',flag:['#4c5149','#c8d4c0'],veh:'#585d5e',helm:'de'}]}
 };

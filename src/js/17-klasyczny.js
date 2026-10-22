@@ -133,7 +133,7 @@ const BEH={
     clMoveMen(u,x*sp,y*sp,dt,false,vert?2.2:horiz?1.2:0,I.hum);
     if(I.Ap&&I.bat&&!clVolley(u)&&I.hum)AU.bad();},
   acwLance(u,dt,I){const{x,y,dir}=I;
-    if(u.state==='idle'){u.charging=false;u.gallop=false;u.s=Math.max(0,u.s-dt*1.2);clMoveMen(u,x*CLS.lan.walk,y*CLS.lan.walk,dt,false,2,I.hum);
+    if(u.state==='idle'){u.charging=false;u.gallop=false;u.s=Math.max(0,u.s-dt*1.2);clMoveMen(u,(x*dir<0?0:x)*CLS.lan.walk,y*CLS.lan.walk,dt,false,2,I.hum);
       if(I.bat&&I.Ap){u.state='ride';u.form='col';u.charging=true;u.gallop=true;AU.bugle(BUG.charge);msg(u.side,`${unitName(u)}: szarża z kopiami!`);}}
     else{u.gallop=true;u.charging=true;if(I.Ap){u.form=u.form==='col'?'line':u.form==='line'?'wedge':'col';AU.ui();}const ay=I.inp?y:cavAvoid(u)*.8;
       clMoveMen(u,dir*CLS.lan.sprint,ay*CLS.cav.steer,dt,true,2.2,I.hum,!I.inp);
@@ -157,7 +157,7 @@ const BEH={
     if(Math.abs(y)>.2&&!u.aiming){const ny=clamp(u.y+y*CLS.art.spd*Math.max(.3,passF('art',u.x,u.y))*dt,32,H-10);if(passF('art',u.x,ny)>0)u.y=ny;u.setup=.35;}
     if(I.Rp&&u.key==='mor'){u.ammo2=u.ammo2==='smoke'?'he':'smoke';AU.ui();}
     if(I.bat){if(A&&u.aiming&&Math.abs(y)>.2&&!u.fixedElev)u.elev=clamp((u.elev||20)-y*40*dt,5,65);
-      if(A){if(!u.aiming){u.aiming=true;u.aimDir=1;u.aimR=MIN;}const mr=artMaxRange(u);u.aimR+=u.aimDir*(u.aimSpd||330)*dt;
+      if(A){if(!u.aiming){u.aiming=true;u.aimDir=1;u.aimR=MIN;}const mr=artMaxRange(u);u.aimR+=u.aimDir*(u.aimSpd||430)*dt;
         if(u.aimR>mr){u.aimR=mr;u.aimDir=-1;}if(u.aimR<MIN){u.aimR=MIN;u.aimDir=1;}}
       else if(u.aiming){u.aiming=false;u.ammo='ball';if(!fireCannon(u,u.aimR,true)&&I.hum)AU.bad();}}
     clCrew(u,false,dt);}
@@ -201,6 +201,7 @@ function clPick(p,letter){const L=clOrder(p).filter(u=>kdOf(u).pick===letter);if
 function clPlayer(p){const c=input.ctl[p];
   if(c.p.lb||c.p.left)clCycle(p,-1);if(c.p.rb||c.p.right)clCycle(p,1);
   if(c.p.x)clPick(p,'x');if(c.p.y)clPick(p,'y');if(c.p.b)clPick(p,'b');
+  if(c.p.lt&&G.state==='battle'&&FAC[p].air){const u=clSel(p);callAir(p,u?u.y:H/2);}
   if(c.p.start&&G.state==='battle'){G.state='pause';G.pauseSel=0;AU.ui();}
   else if(c.p.start&&G.state==='deploy'){G.ready[p]=!G.ready[p];AU.ok2();}}
 /* --- komputer: steruje JEDNYM oddziałem naraz, z opóźnieniem reakcji --- */
@@ -256,7 +257,7 @@ function cpuClassic(u,dt){const c=G.cpu;const idle={x:0,y:0,A:false};if(c.react>
   const wantEl=tg.type==='art'?52:18,ey=u.fixedElev?0:Math.abs(wantEl-u.elev)>3?(wantEl>u.elev?-1:1):0;
   const want=clamp(Math.abs(px-u.x)*(1+c.aimErr*.6),mn+5,mr-3);return{x:0,y:ey,A:ey!==0||u.aimR<want||u.aimDir<0};}
 /* --- przebieg --- */
-function clStart(){units=[];uid=1;bullets=[];G.evDone={};
+function clStart(){units=[];uid=1;bullets=[];G.evDone={};airReset();
   G.res=[0,1].map(s=>{const r={};for(const k of TY(s))r[k]=G.army[s][k]||0;return r;});G.spawnQ=[];G.cavSlot=[0,0];
   for(const s of[0,1])for(const k of TY(s)){clSpawn(s,k,0);if(KD[k].two)clSpawn(s,k,1);}
   if(MAP.def.mines)layMines();else G.mines=[];
@@ -277,7 +278,7 @@ function clStep(dt){G.t+=dt;
   for(let p=0;p<2;p++){const u=clSel(p);if(!u||u.state==='enter')continue;
     if(isCPU(p))inputs[u.id]=cpuClassic(u,dt);else{const c=input.ctl[p];inputs[u.id]={x:c.lx,y:c.ly,A:acw?(c.b.a||c.b.rt):c.b.a,R:!acw&&c.b.rt,human:true};}}
   for(const u of units)clUpdate(u,dt,inputs[u.id]||null);
-  trackVel(dt);updBullets(dt);clMelee(dt);updProjs(dt);clSpawnTick(dt);eraTick3(dt);scenTick(dt);
+  trackVel(dt);updBullets(dt);clMelee(dt);updProjs(dt);clSpawnTick(dt);eraTick3(dt);scenTick(dt);airTick(dt);
   for(let p=0;p<2;p++)clAutoSel(p);
   if(G.state==='battle')clVictory();}
 /* --- grafika trybu klasycznego --- */
@@ -323,7 +324,7 @@ function clHUD(){ctx.fillStyle='rgba(10,12,10,.8)';ctx.fillRect(0,0,W,26);ctx.fi
   for(let p=0;p<2;p++){const S=SIDE[p],r=G.res[p],sp=TY(p).length>4?36:42;let x=p===0?10:W-10;
     txt(S.name.toUpperCase(),x,18,18,S.ui,p===0?'left':'right');const nw=Math.max(104,Math.ceil(ctx.measureText(S.name.toUpperCase()).width)+14);x+=p===0?nw:-nw;
     for(const k of TY(p)){const n=r[k]||0,ix=p===0?x:x-30;chipIcon(k,ix,7,n>0?S.ui:'#5a4a44');txt(`×${n}`,ix+13,18,16,n>0?'#e8e2d0':'#6a625a');x+=p===0?sp:-sp;}}
-  txt((VARIANTS[G.variant].hud||ERA.name).toUpperCase(),W/2,18,16,'#c9a24a','center',false,false);txt(weatherLabel(),W/2,44,16,'#d8cfb2','center');
+  txt((VARIANTS[G.variant].hud||ERA.name).toUpperCase(),W/2,18,16,'#c9a24a','center',false,false);txt(weatherLabel(),W/2,44,16,'#d8cfb2','center');airHUD();
   for(let p=0;p<2;p++)if(humanOf(p)>=0)clPanel(p);
   drawMsgs();
   if(G.state==='deploy'){ctx.fillStyle='rgba(10,12,10,.75)';ctx.fillRect(W/2-210,54,420,70);

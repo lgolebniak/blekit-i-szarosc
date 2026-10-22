@@ -115,6 +115,7 @@ CPU.leg=function(u,dt,foes,dir,c){const forms=kdOf(u).forms;if(forms.includes('t
   const t=nearestBy(foes.filter(f=>f.type==='inf'),u)||nearestBy(foes,u),dx=Math.abs(t.x-u.x),dy=t.y-u.y;
   const threat=foes.some(f=>f.type==='cav'&&dist(f.x,f.y,u.x,u.y)<200)||foes.some(f=>(f.key==='arc'||f.key==='bal')&&Math.abs(f.x-u.x)<400);
   const want=threat&&dx>90?'phalanx':'line';if(want!==u.rf){const A=!c.lastA;c.lastA=A;return{x:0,y:0,A};}c.lastA=false;
+  if(u.key==='pik'&&foes.some(f=>f.type==='cav'&&dist(f.x,f.y,u.x,u.y)<220))return{x:0,y:0,A:false};
   if(dx>40){const v=steer(u,t.x,t.y,dt);return{x:v[0],y:v[1],A:false};}return{x:dir*.5,y:clamp(dy/20,-1,1),A:false};};
 Object.assign(CPU,{
   num(u,dt,foes,dir,c){const t=nearestBy(foes.filter(f=>f.key==='arc'||f.key==='bal'||f.key==='ona'),u)||nearestBy(foes,u),dx=(t.x-u.x)*dir,dy=t.y-u.y;

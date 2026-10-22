@@ -55,9 +55,10 @@ function drawHelp(){panel(40,40,W-80,H-80,BRASS);const pg=G.helpPage||0;
    ww2:[['Lewy drążek','Wszyscy idą równolegle. Czołg jeździ w każdą stronę, ale strzela tylko w przód i po skosach. Działo i moździerz tylko góra–dół.','WASD','Strzałki'],
     ['A','Krótko = strzał na wprost, trzymaj = skos do 45° (drążek góra–dół), puść = strzał · Ckm: trzymaj = seria, drążek sieje na boki · Czołg: trzymaj = kierunek, drugie A = odległość · Moździerz: trzymaj = siła','F / Spacja','Enter / K'],
     ['RT','Piechota: granat · Czołg: karabin maszynowy · Moździerz: odłamkowy / dymny','V','M'],['X / Y / B','Piechota, ckm, rusznica / czołg / działo i moździerz','R/T/G','J/I/L'],['LB / RB','Poprzedni / następny oddział','Q / E','U / O'],['Start / drążek','Rozstawienie: gotowi · w bitwie: pauza','Esc / 1','Backspace / 0'],
-    ['Samoobrona','Oddziały bez sterowania same strzelają w obronie do 75% zasięgu: piechota, ckm, rusznica, czołg. Moździerz i działo tylko pod Twoim sterowaniem. Ostrzał na wprost niszczy worki, ruiny, domy i murki – granat i moździerz lecą nad nimi.','','']],
-   pl17:[['Lewy drążek','Husaria w stępie: każdy kierunek. W szarży: góra–dół, w tył = zwrot. Pancerni, spahisi: jak szabliści. Rajtaria: każdy kierunek. Działa: góra–dół.','WASD','Strzałki'],
-    ['A','Husaria: szarża, potem cios koncerzem · Piechota: salwa · Pikinierzy: linia ↔ jeż · Rajtaria: pistolety · Działo: trzymaj = siła','F / Spacja','Enter / K'],
+    ['LT','Nalot: samolot leci na wysokości wybranego oddziału i bombarduje połowę wroga. Ckm może go zestrzelić.','L. Shift','P. Shift'],
+    ['Samoobrona','Oddziały bez sterowania same bronią się ogniem do 75% zasięgu (bez moździerza i działa).','','']],
+   pl17:[['Lewy drążek','Husaria stoi: góra–dół i powoli naprzód, bez cofania. W szarży: góra–dół, w tył = stój. Pikinierzy: A = piki w dół (stoją: na sztorc, idą: natarcie). Rajtaria: każdy kierunek.','WASD','Strzałki'],
+    ['A','Husaria: szarża; bez kopii cięcie koncerzem (także w miejscu) · Piechota: salwa · Pikinierzy: piki w dół ↔ w górę · Rajtaria: pistolety · Działo: trzymaj = siła','F / Spacja','Enter / K'],
     ['RT','Husaria w szarży: linia ↔ klin','V','M'],
     ['Kopie','Kopia husarza jest dłuższa od piki i pęka przy uderzeniu. Nowe kopie: po przejeździe przez pole albo 3 s postoju w swojej strefie.','',''],
     ['X / Y / B','Piechota i pikinierzy / jazda i husaria / działa','R/T/G','J/I/L'],['LB / RB','Poprzedni / następny oddział','Q / E','U / O'],['Start / drążek','Pauza','Esc / 1','Backspace / 0']]};

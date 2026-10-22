@@ -29,8 +29,8 @@ BEH.mg=function(u,dt,I){const{x,y,A}=I;if(u.over&&u.heat<.35)u.over=false;
         parts.push({k:'flash',x:g.x+dir*10,y:g.y-3,life:0,max:.04});if(R()<.5)AU.burst(.06,1900,'bandpass',1,.13,AU.pan(u.x));if(R()<.25)addSmoke(g.x+dir*9,g.y-3,1,false);G.stats[u.side].shots++;u.firedT=3;}}}};
 BEH.at=function(u,dt,I){const a=coneFire(u,I,dt);if(!(I.A&&I.bat))artVert(u,I.y,dt);
   if(a!==null){if(u.reload>0||u.setup>0){if(I.hum)AU.bad();}
-    else if(useShot(u)){const[cx,cy]=coneVec(u,a),bx=u.x+cx*14;u.reload=2.6;u.firedT=3;u.recoil=1;
-      const b={x:bx,y:u.y+cy*14,vx:cx*520,vy:cy*520,left:820,side:u.side,src:u.key,kind:'shell',pk:.6,boom:7,bk:.6};b.ap=bb=>{const tr=820-bb.left;return tr<300?.75:tr<550?.45:.25;};bullets.push(b);
+    else if(useShot(u)){const[cx,cy]=coneVec(u,a),bx=u.x+cx*14;u.reload=2.3;u.firedT=3;u.recoil=1;
+      const b={x:bx,y:u.y+cy*14,vx:cx*520,vy:cy*520,left:600,side:u.side,src:u.key,kind:'shell',pk:.6,boom:7,bk:.6};b.ap=bb=>{const tr=600-bb.left;return tr<300?.75:tr<550?.45:.25;};bullets.push(b);
       parts.push({k:'flash',x:bx,y:u.y-6,life:0,max:.08,big:1});addSmoke(bx,u.y-6,2,false);AU.cannon(u.x);G.shake=Math.max(G.shake,1.2);G.stats[u.side].shots++;}}
   clCrew(u,false,dt);};
 function nearBroken(x,y){if(!MAP.broken)return false;const tx=Math.floor(x/TS),ty=Math.floor(y/TS);for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)if(MAP.broken.has((ty+dy)*GW+tx+dx))return true;return false;}
@@ -61,5 +61,4 @@ function tankDestroy(e,m,kind){m.alive=false;G.stats[e.side].lost++;e.hitFlash=.
 function eraTick(dt){if(!G.fires)return;for(let i=G.fires.length-1;i>=0;i--){const f=G.fires[i];f.t-=dt;if(f.t<=0){G.fires.splice(i,1);continue;}
   if(R()<dt*4)parts.push({k:'smoke',x:f.x+(R()-.5)*8,y:f.y-10,vx:G.wind.x*8,vy:-6,r:3,g:6,life:0,max:4,a:.5});
   if(R()<dt*8)parts.push({k:'spark',x:f.x+(R()-.5)*10,y:f.y-8,vx:(R()-.5)*10,vy:-18,life:0,max:.4});}}
-function eraSprites(){}
 

@@ -49,7 +49,7 @@ function tryVolley(u,manual){
   if(t){t.morale-=1.5*fl;t.underFire=2.5;}
   AU.musket(u.x,k);return true;
 }
-function artMaxRange(u){if(u.maxR)return u.maxR*(1+.15*hAt(u.x,u.y));return G.rules==='classic'?880:SPEC.art.range*(1+.18*hAt(u.x,u.y));}
+function artMaxRange(u){if(u.maxR)return u.maxR*(1+.15*hAt(u.x,u.y));return G.rules==='classic'?580*(1+.15*hAt(u.x,u.y)):SPEC.art.range*(1+.18*hAt(u.x,u.y));}
 function fireCannon(u,range,manual){
   if(G.state!=='battle'||u.reload>0||u.setup>0||u.rout||u.n<=0)return false;if(!useShot(u))return false;
   u.reload=(u.reloadBase||SPEC.art.reload)*([9,1.9,1.35,1][u.n]||1)*reloadMod(u)*(G.rules==='classic'&&hAt(u.x,u.y)>0?.85:1);u.firedT=3;u.recoil=1;const MIN=u.minR||SPEC.art.min;

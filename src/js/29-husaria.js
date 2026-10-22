@@ -9,13 +9,15 @@ Object.assign(KD,{
   hus:{base:'cav',men:4,lance:true,name:'Husaria',unit:'Chorągiew husarska',pick:'y',pos:[72,'cav'],ai:'hus',beh:'hus',label:'Husarze',
     init:u=>{for(const m of u.men)m.kopia=true;},
     status:u=>{const al=u.men.filter(m=>m.alive),k=al.filter(m=>m.kopia).length;
-      return u.state==='ride'?`SZARŻA · kopie ${k}/${al.length} · A: koncerz · RT: ${u.form==='line'?'klin':'linia'}`:u.state==='halt'?'Zwrot – konie zwalniają':`Stępa · kopie ${k}/${al.length} · A: szarża`;}},
+      return u.state==='ride'?`SZARŻA · kopie ${k}/${al.length} · A: koncerz · RT: ${u.form==='line'?'klin':'linia'}`:u.state==='halt'?'Stój – konie zwalniają':k?`Stoją · kopie ${k}/${al.length} · A: szarża`:'Stoją bez kopii · A: cięcie · przód: szarża';}},
   pan:{base:'cav',men:4,name:'Pancerni',unit:'Chorągiew pancerna',pick:'y',pos:[72,'cav'],ai:'cav',beh:'acwSabre',label:'Jeźdźcy'},
   haj:{base:'inf',men:6,name:'Hajducy',unit:'Rota hajducka',pick:'x',pos:[160,270],ai:'flat',beh:'musk',label:'Hajducy',range:190,vol:plVol(2.6,190,.8),melee:1.6,sap:true,init:muskInit},
-  dz:{base:'art',men:3,name:'Działa',unit:'Działo',pick:'b',pos:[44,'art'],two:true,ai:'artArc',beh:'acwCannon',label:'Puszkarze',init:u=>{u.maxR=700;}},
+  dz:{base:'art',men:3,name:'Działa',unit:'Działo',pick:'b',pos:[44,'art'],two:true,ai:'artArc',beh:'acwCannon',label:'Puszkarze',init:u=>{u.maxR=560;u.reloadBase=4.6;}},
   mus:{base:'inf',men:6,name:'Muszkieterowie',unit:'Rota muszkieterów',pick:'x',pos:[165,200],ai:'flat',beh:'musk',label:'Muszkieterzy',range:210,vol:plVol(2.8,210,.8),init:muskInit},
-  pik:{base:'inf',men:8,name:'Pikinierzy',unit:'Rota pikinierów',pick:'x',pos:[175,330],ai:'leg',beh:'leg',label:'Pikinierzy',slots:legSlots2,forms:['line','phalanx'],init:u=>{u.rf='line';},
-    status:u=>`${u.rf==='phalanx'?'Jeż – piki w przód':'Linia'}${u.formT>0?' (zmiana)':''} · A: szyk`},
+  pik:{base:'inf',men:8,name:'Pikinierzy',unit:'Rota pikinierów',pick:'x',pos:[175,330],ai:'leg',beh:'leg',label:'Pikinierzy',
+    // piki w dół: szeroki jeż w dwóch szeregach na przemian (jak linia, ale zwarty) – zatrzymuje całą szarżę, nie tylko środek
+    slots:(u,n)=>u.rf==='phalanx'?Array.from({length:n},(_,j)=>[-clDir(u.side)*(j%2)*7,(j-(n-1)/2)*8]):legSlots2(u,n),forms:['line','phalanx'],init:u=>{u.rf='line';},
+    status:u=>`${u.rf!=='phalanx'?'Marsz – piki w górę, słabi':pikBrace(u)?'NA SZTORC – stop dla jazdy':'NATARCIE – kłują piechotę'}${u.formT>0?' (zmiana)':''} · A: ${u.rf==='phalanx'?'piki w górę':'piki w dół'}`},
   rajt:{base:'cav',men:4,name:'Rajtaria',unit:'Kompania rajtarów',pick:'y',pos:[84,'cav'],ai:'skirm',beh:'skirm',label:'Rajtarzy',spd:44,vol:plVol(3.2,85,.6,{spd:320,kind:'pistol'}),
     status:u=>u.reload>0?'Nabijają pistolety…':'Ruch w każdą stronę · A: salwa z pistoletów'},
   strz:{base:'inf',men:6,name:'Strzelcy',unit:'Prikaz strzelców',pick:'x',pos:[150,270],ai:'flat',beh:'musk',label:'Strzelcy',range:180,vol:plVol(3,180,.75),melee:1.3,init:muskInit},
@@ -30,7 +32,7 @@ const PL17INFO={
   haj:['Hajducy','6 piechurów · rusznice i czekany','A: salwa. Rozbierają płoty i palisady.'],
   dz:['Działa','działo + 3 puszkarzy','Trzymaj A = siła. Kula łamie płoty i wały.'],
   mus:['Muszkieterowie','6 strzelców · ciężkie muszkiety','A: salwa – daleko, ale wolno ładują.'],
-  pik:['Pikinierzy','8 ludzi · długie piki','A: linia ↔ jeż. Jeż zatrzymuje jazdę.'],
+  pik:['Pikinierzy','8 ludzi · długie piki','A: piki w dół. Stoją: na sztorc, idą: natarcie.'],
   rajt:['Rajtaria','4 rajtarów · pistolety','Każdy kierunek. A: pistolety z bliska.'],
   strz:['Strzelcy','6 ludzi · rusznice i berdysze','A: salwa. Berdysze – groźni wręcz.'],
   boj:['Jazda bojarska','4 jeźdźców · szable','Kłus, galop, dęba. A: cięcie.'],
@@ -113,12 +115,16 @@ BEH.skirm=function(u,dt,I){const kd=kdOf(u),sp=kd.spd||44;clMoveMen(u,I.x*sp,I.y
   if(I.Ap&&I.bat&&!clVolley(u,kd.vol)&&I.hum)AU.bad();};
 // husaria: stępa (każdy kierunek) → szarża z kopiami → koncerz; zwrot drążkiem w tył; po przejeździe przez pole wraca z nowymi kopiami
 BEH.hus=function(u,dt,I){const{x,y,dir}=I;
+  // stoją: ruch tylko w górę, w dół i powoli naprzód – husaria się nie cofa
   if(u.state==='idle'){u.charging=false;u.gallop=false;u.s=Math.max(0,u.s-dt*1.2);
-    clMoveMen(u,x*CLS.hus.walk,y*CLS.hus.walk,dt,false,2,I.hum);
-    const al=u.men.filter(m=>m.alive),need=al.some(m=>!m.kopia),still=!al.some(m=>m.mv>.2);
+    clMoveMen(u,(x*dir<0?0:x)*CLS.hus.walk,y*CLS.hus.walk,dt,false,2,I.hum);
+    const al=u.men.filter(m=>m.alive),armed=al.some(m=>m.kopia),need=al.some(m=>!m.kopia),still=!al.some(m=>m.mv>.2);
     if(need&&still&&inZone(u.side,u.x)){u.armT=(u.armT||0)+dt;if(u.armT>3){u.armT=0;for(const m of al)m.kopia=true;msg(u.side,`${unitName(u)}: nowe kopie z taboru!`);AU.ui();}}else u.armT=0;
-    if(I.bat&&I.Ap){u.state='ride';u.form='line';u.charging=true;u.gallop=true;AU.bugle(BUG.charge);msg(u.side,`${unitName(u)}: husaria – szarża!`);}}
-  else if(u.state==='halt'){u.charging=false;u.gallop=false;clMoveMen(u,0,0,dt,false,1.5,I.hum);if(u.rearT<=0)u.state='idle';}
+    u.fwdT=I.bat&&x*dir>.5?(u.fwdT||0)+dt:0;
+    if(I.bat&&((I.Ap&&armed)||u.fwdT>.8)){u.state='ride';u.form='line';u.fwdT=0;u.charging=true;u.gallop=true;AU.bugle(BUG.charge);msg(u.side,`${unitName(u)}: husaria – szarża!`);}
+    else if(I.bat&&I.Ap&&u.slashCd<=0){u.slashT=.4;u.slashCd=.55;AU.clash(u.x);}}
+  else if(u.state==='halt'){u.charging=false;u.gallop=false;clMoveMen(u,0,0,dt,false,1.5,I.hum);if(u.rearT<=0)u.state='idle';
+    if(I.bat&&I.Ap&&u.slashCd<=0){u.slashT=.4;u.slashCd=.55;AU.clash(u.x);}}
   else{u.gallop=true;u.charging=true;
     if(I.inp&&x*dir<-.5&&!u.men.some(m=>m.alive&&m.wrap)){u.state='halt';u.rearT=.6;u.gallop=false;u.charging=false;AU.tone(700,.35,'sawtooth',.05,0,-300,1400);return;}
     if(I.Rp){u.form=u.form==='line'?'wedge':'line';AU.ui();}
@@ -135,13 +141,14 @@ function lanceSplinter(m,side){const dir=clDir(side);for(let i=0;i<6;i++)parts.p
   AU.burst(.12,2600,'highpass',2,.25,AU.pan(m.x));}
 
 /* --- walka wręcz XVII w.: kopia dłuższa od piki, jeż pikinierów, zbroja husarii --- */
+const pikBrace=u=>u.rf==='phalanx'&&u.formT<=0&&!u.men.some(m=>m.alive&&m.mv>.3);
 function pl17Strike(a,b,m,o,d){let p;const kd=kdOf(a),front=(o.x-m.x)*clDir(a.side)>-2;
   if(a.key==='hus'){if(a.state==='ride'&&a.gallop&&m.kopia&&front)p=.7;else if(a.slashT>0)p=b.type==='cav'?.32:.48;else p=a.state==='ride'&&a.gallop&&b.type!=='cav'&&d<7?.08:.02;}
   else if(a.type==='cav'){if(kd.beh==='skirm')p=.03;else if(a.slashT>0)p=b.type==='cav'?(b.slashT>0?.22:.4):.45;else if(a.gallop&&b.type!=='cav'&&d<6)p=.07;else p=.01;}
-  else if(a.key==='pik')p=a.rf==='phalanx'?.06*(b.type==='cav'?2.6:1):.045*(b.type==='cav'?1.6:1);
+  else if(a.key==='pik')p=a.rf!=='phalanx'?.02*(b.type==='cav'?1.5:1):pikBrace(a)?.045*(b.type==='cav'?3.6:1):.075*(b.type==='cav'?1.6:1);
   else if(a.type==='inf')p=(b.type==='cav'?.035:b.type==='art'?.06:.025)*(kd.melee||1);
   else p=.01;
-  if(b.key==='pik'){const fr=isFront(b,m.x);if(b.rf==='phalanx'&&fr)p*=a.key==='hus'&&m.kopia?.4:a.type==='cav'?.2:.5;else if(!fr)p*=1.25;else if(a.key==='hus')p*=1.15;}
+  if(b.key==='pik'){const fr=isFront(b,m.x),br=pikBrace(b);if(b.rf==='phalanx'&&fr)p*=a.key==='hus'&&m.kopia?(br?.3:.5):a.type==='cav'?(br?.12:.3):br?.6:.5;else if(!fr)p*=1.25;else p*=1.15;}
   if(b.key==='hus')p*=.8;
   if(a.formT>0)p*=.6;
   return p;}
@@ -154,7 +161,7 @@ clMelee=function(dt){clMeleeT-=dt;if(clMeleeT>0)return;clMeleeT=.1;
   for(const a of L)for(const b of L){if(a.side===b.side||Math.abs(a.x-b.x)>100||Math.abs(a.y-b.y)>100)continue;
     const base=a.type==='cav'?(a.lance?13:11):a.type==='tank'?9:a.type==='ele'?10:7;
     for(const m of a.men){if(!m.alive||m.cool>0)continue;const kop=a.key==='hus'&&m.kopia&&a.state==='ride'&&a.gallop;
-      const reach=kop?17:a.key==='pik'?(a.rf==='phalanx'?13:10):base;
+      const reach=kop?17:a.key==='pik'?(a.rf!=='phalanx'?9:pikBrace(a)?14:13):base;
       for(const o of b.men){if(!o.alive)continue;const d=dist(m.x,m.y,o.x,o.y);if(d>reach)continue;
         const p=clStrike(a,b,m,o,d);if(p<=0)continue;const hit=R()<p;
         if(kop&&(o.x-m.x)*clDir(a.side)>-2&&(hit||R()<.25)){m.kopia=false;lanceSplinter(m,a.side);}
@@ -199,10 +206,10 @@ Object.assign(CPUSCORE,{hus:u=>u.state==='ride'?(cavAvoid(u)?72:50):(G.t<8?12:46
 CPU.hus=function(u,dt,foes,dir,c){const al=u.men.filter(m=>m.alive),armed=al.filter(m=>m.kopia).length;
   const soft=foes.filter(f=>!(f.key==='pik'&&f.rf==='phalanx'));const t=bestTarget(u,soft.length?soft:foes)||nearestBy(foes,u);
   if(!t||u.state==='halt')return idle0;
-  if(u.state==='idle'){
-    if(armed<al.length*.5){if(inZone(u.side,u.x))return idle0;const hx=u.side===0?DEPLOY*.45:W-DEPLOY*.45,back=Math.abs(u.x-hx),fwd=u.side===0?W-u.x:u.x;
-      if(back<fwd*.8){const v=steer(u,hx,u.y,dt);return{x:v[0],y:v[1],A:false};}}
-    const dy=t.y-u.y,go=Math.abs(dy)<16&&!c.lastA;c.lastA=go;return{x:0,y:clamp(dy/20,-1,1),A:go};}
+  if(u.state==='idle'){let nr=1e9;for(const f of foes)for(const o of f.men)if(o.alive&&Math.abs(o.y-u.y)<20)nr=Math.min(nr,Math.abs(o.x-u.x));
+    if(!armed&&nr<26){const s=u.slashCd<=0&&!c.lastA;c.lastA=s;return{x:0,y:0,A:s};}
+    const dy=t.y-u.y,ok=Math.abs(dy)<16;if(!armed)return{x:ok?dir:0,y:clamp(dy/20,-1,1),A:false};
+    const go=ok&&!c.lastA;c.lastA=go;return{x:0,y:clamp(dy/20,-1,1),A:go};}
   let ty=t.y,bd=1e9,near=1e9;
   for(const f of foes)for(const o of f.men){if(!o.alive)continue;const ax=(o.x-u.x)*dir;if(ax<-5||ax>300)continue;const d=ax+Math.abs(o.y-u.y)*1.5;if(d<bd){bd=d;ty=o.y;}if(Math.abs(o.y-u.y)<20)near=Math.min(near,Math.abs(ax));}
   let iy=clamp((ty-u.y)/16,-1,1);const av=cavAvoid(u);if(av)iy=av;
@@ -245,7 +252,8 @@ function pl17Soldier(x,y,s,right,anim,moving,aim,flag,crew,flash){
   else if(key==='haj'){r(-2,-12,4,2,'#7a2a22');r(-2,-11,4,1,'#4a3020');r(1,-14,1,2,'#e8e2d0');}
   else{r(-2,-12,4,2,S.hat);r(-2,-11,4,1,'#3a2a1a');}
   if(crew)return true;
-  if(key==='pik'){if(u&&u.rf==='phalanx'){r(1,-9,14,1,'#6a4a2a');r(15,-9,2,1,'#c8ccd0');}else{r(2,-26,1,23,'#6a4a2a');r(2,-27,1,2,'#c8ccd0');}}
+  if(key==='pik'){if(u&&u.rf==='phalanx'&&u.men&&pikBrace(u)){for(let k=0;k<14;k++)r(k-1,-2-Math.round(k*.85),1,1,'#6a4a2a');r(13,-15,2,1,'#c8ccd0');}
+    else if(u&&u.rf==='phalanx'){r(1,-9,14,1,'#6a4a2a');r(15,-9,2,1,'#c8ccd0');}else{r(2,-26,1,23,'#6a4a2a');r(2,-27,1,2,'#c8ccd0');}}
   else if(aim){r(1,-8,7,1,'#4e3520');r(8,-8,1,1,'#9aa0a6');}
   else{r(2,-15,1,10,'#4e3520');r(2,-16,1,1,'#9aa0a6');
     if(key==='strz'){r(-3,-16,1,12,'#6a4a2a');r(-5,-17,2,4,'#c8ccd0');}else if(key==='haj'){r(-3,-7,1,4,'#6a4a2a');r(-4,-8,2,2,'#c8ccd0');}}

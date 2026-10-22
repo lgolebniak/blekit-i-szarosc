@@ -593,7 +593,7 @@ function tryVolley(u,manual){
   if(t){t.morale-=1.5*fl;t.underFire=2.5;}
   AU.musket(u.x,k);return true;
 }
-function artMaxRange(u){if(u.maxR)return u.maxR*(1+.15*hAt(u.x,u.y));return G.rules==='classic'?880:SPEC.art.range*(1+.18*hAt(u.x,u.y));}
+function artMaxRange(u){if(u.maxR)return u.maxR*(1+.15*hAt(u.x,u.y));return G.rules==='classic'?580*(1+.15*hAt(u.x,u.y)):SPEC.art.range*(1+.18*hAt(u.x,u.y));}
 function fireCannon(u,range,manual){
   if(G.state!=='battle'||u.reload>0||u.setup>0||u.rout||u.n<=0)return false;if(!useShot(u))return false;
   u.reload=(u.reloadBase||SPEC.art.reload)*([9,1.9,1.35,1][u.n]||1)*reloadMod(u)*(G.rules==='classic'&&hAt(u.x,u.y)>0?.85:1);u.firedT=3;u.recoil=1;const MIN=u.minR||SPEC.art.min;
@@ -1141,7 +1141,7 @@ const BEH={
     clMoveMen(u,x*sp,y*sp,dt,false,vert?2.2:horiz?1.2:0,I.hum);
     if(I.Ap&&I.bat&&!clVolley(u)&&I.hum)AU.bad();},
   acwLance(u,dt,I){const{x,y,dir}=I;
-    if(u.state==='idle'){u.charging=false;u.gallop=false;u.s=Math.max(0,u.s-dt*1.2);clMoveMen(u,x*CLS.lan.walk,y*CLS.lan.walk,dt,false,2,I.hum);
+    if(u.state==='idle'){u.charging=false;u.gallop=false;u.s=Math.max(0,u.s-dt*1.2);clMoveMen(u,(x*dir<0?0:x)*CLS.lan.walk,y*CLS.lan.walk,dt,false,2,I.hum);
       if(I.bat&&I.Ap){u.state='ride';u.form='col';u.charging=true;u.gallop=true;AU.bugle(BUG.charge);msg(u.side,`${unitName(u)}: szarża z kopiami!`);}}
     else{u.gallop=true;u.charging=true;if(I.Ap){u.form=u.form==='col'?'line':u.form==='line'?'wedge':'col';AU.ui();}const ay=I.inp?y:cavAvoid(u)*.8;
       clMoveMen(u,dir*CLS.lan.sprint,ay*CLS.cav.steer,dt,true,2.2,I.hum,!I.inp);
@@ -1165,7 +1165,7 @@ const BEH={
     if(Math.abs(y)>.2&&!u.aiming){const ny=clamp(u.y+y*CLS.art.spd*Math.max(.3,passF('art',u.x,u.y))*dt,32,H-10);if(passF('art',u.x,ny)>0)u.y=ny;u.setup=.35;}
     if(I.Rp&&u.key==='mor'){u.ammo2=u.ammo2==='smoke'?'he':'smoke';AU.ui();}
     if(I.bat){if(A&&u.aiming&&Math.abs(y)>.2&&!u.fixedElev)u.elev=clamp((u.elev||20)-y*40*dt,5,65);
-      if(A){if(!u.aiming){u.aiming=true;u.aimDir=1;u.aimR=MIN;}const mr=artMaxRange(u);u.aimR+=u.aimDir*(u.aimSpd||330)*dt;
+      if(A){if(!u.aiming){u.aiming=true;u.aimDir=1;u.aimR=MIN;}const mr=artMaxRange(u);u.aimR+=u.aimDir*(u.aimSpd||430)*dt;
         if(u.aimR>mr){u.aimR=mr;u.aimDir=-1;}if(u.aimR<MIN){u.aimR=MIN;u.aimDir=1;}}
       else if(u.aiming){u.aiming=false;u.ammo='ball';if(!fireCannon(u,u.aimR,true)&&I.hum)AU.bad();}}
     clCrew(u,false,dt);}
@@ -1209,6 +1209,7 @@ function clPick(p,letter){const L=clOrder(p).filter(u=>kdOf(u).pick===letter);if
 function clPlayer(p){const c=input.ctl[p];
   if(c.p.lb||c.p.left)clCycle(p,-1);if(c.p.rb||c.p.right)clCycle(p,1);
   if(c.p.x)clPick(p,'x');if(c.p.y)clPick(p,'y');if(c.p.b)clPick(p,'b');
+  if(c.p.lt&&G.state==='battle'&&FAC[p].air){const u=clSel(p);callAir(p,u?u.y:H/2);}
   if(c.p.start&&G.state==='battle'){G.state='pause';G.pauseSel=0;AU.ui();}
   else if(c.p.start&&G.state==='deploy'){G.ready[p]=!G.ready[p];AU.ok2();}}
 /* --- komputer: steruje JEDNYM oddziałem naraz, z opóźnieniem reakcji --- */
@@ -1264,7 +1265,7 @@ function cpuClassic(u,dt){const c=G.cpu;const idle={x:0,y:0,A:false};if(c.react>
   const wantEl=tg.type==='art'?52:18,ey=u.fixedElev?0:Math.abs(wantEl-u.elev)>3?(wantEl>u.elev?-1:1):0;
   const want=clamp(Math.abs(px-u.x)*(1+c.aimErr*.6),mn+5,mr-3);return{x:0,y:ey,A:ey!==0||u.aimR<want||u.aimDir<0};}
 /* --- przebieg --- */
-function clStart(){units=[];uid=1;bullets=[];G.evDone={};
+function clStart(){units=[];uid=1;bullets=[];G.evDone={};airReset();
   G.res=[0,1].map(s=>{const r={};for(const k of TY(s))r[k]=G.army[s][k]||0;return r;});G.spawnQ=[];G.cavSlot=[0,0];
   for(const s of[0,1])for(const k of TY(s)){clSpawn(s,k,0);if(KD[k].two)clSpawn(s,k,1);}
   if(MAP.def.mines)layMines();else G.mines=[];
@@ -1285,7 +1286,7 @@ function clStep(dt){G.t+=dt;
   for(let p=0;p<2;p++){const u=clSel(p);if(!u||u.state==='enter')continue;
     if(isCPU(p))inputs[u.id]=cpuClassic(u,dt);else{const c=input.ctl[p];inputs[u.id]={x:c.lx,y:c.ly,A:acw?(c.b.a||c.b.rt):c.b.a,R:!acw&&c.b.rt,human:true};}}
   for(const u of units)clUpdate(u,dt,inputs[u.id]||null);
-  trackVel(dt);updBullets(dt);clMelee(dt);updProjs(dt);clSpawnTick(dt);eraTick3(dt);scenTick(dt);
+  trackVel(dt);updBullets(dt);clMelee(dt);updProjs(dt);clSpawnTick(dt);eraTick3(dt);scenTick(dt);airTick(dt);
   for(let p=0;p<2;p++)clAutoSel(p);
   if(G.state==='battle')clVictory();}
 /* --- grafika trybu klasycznego --- */
@@ -1331,7 +1332,7 @@ function clHUD(){ctx.fillStyle='rgba(10,12,10,.8)';ctx.fillRect(0,0,W,26);ctx.fi
   for(let p=0;p<2;p++){const S=SIDE[p],r=G.res[p],sp=TY(p).length>4?36:42;let x=p===0?10:W-10;
     txt(S.name.toUpperCase(),x,18,18,S.ui,p===0?'left':'right');const nw=Math.max(104,Math.ceil(ctx.measureText(S.name.toUpperCase()).width)+14);x+=p===0?nw:-nw;
     for(const k of TY(p)){const n=r[k]||0,ix=p===0?x:x-30;chipIcon(k,ix,7,n>0?S.ui:'#5a4a44');txt(`×${n}`,ix+13,18,16,n>0?'#e8e2d0':'#6a625a');x+=p===0?sp:-sp;}}
-  txt((VARIANTS[G.variant].hud||ERA.name).toUpperCase(),W/2,18,16,'#c9a24a','center',false,false);txt(weatherLabel(),W/2,44,16,'#d8cfb2','center');
+  txt((VARIANTS[G.variant].hud||ERA.name).toUpperCase(),W/2,18,16,'#c9a24a','center',false,false);txt(weatherLabel(),W/2,44,16,'#d8cfb2','center');airHUD();
   for(let p=0;p<2;p++)if(humanOf(p)>=0)clPanel(p);
   drawMsgs();
   if(G.state==='deploy'){ctx.fillStyle='rgba(10,12,10,.75)';ctx.fillRect(W/2-210,54,420,70);
@@ -1351,17 +1352,17 @@ const KD={
   inf:{base:'inf',men:6,name:'Piechota',unit:'Pułk',pick:'x',pos:[150,270],ai:'flat',beh:'acwInf',label:'Ludzie'},
   cav:{base:'cav',men:4,name:'Kawaleria',unit:'Szwadron',pick:'y',pos:[72,'cav'],ai:'cav',beh:'acwSabre',label:'Jeźdźcy'},
   lan:{base:'cav',men:4,lance:true,name:'Ułani',unit:'Szwadron ułanów',pick:'y',pos:[72,'cav'],ai:'lance',beh:'acwLance',label:'Jeźdźcy'},
-  art:{base:'art',men:3,name:'Artyleria',unit:'Bateria',pick:'b',pos:[44,'art'],two:true,ai:'artArc',beh:'acwCannon',label:'Kanonierzy'},
+  art:{base:'art',men:3,name:'Artyleria',unit:'Bateria',pick:'b',pos:[44,'art'],two:true,ai:'artArc',beh:'acwCannon',label:'Kanonierzy',init:u=>{u.reloadBase=4.6;}},
   // --- Rzym ---
   leg:{base:'inf',men:8,name:'Legioniści',unit:'Kohorta',pick:'x',pos:[165,270],ai:'leg',beh:'leg',label:'Legioniści',slots:legSlots,init:u=>{u.rf='line';},
     status:u=>`${RF_NAME[u.rf]}${u.formT>0?' (zmiana)':''} · A: szyk · RT: pilum${u.cd2>0?` za ${Math.ceil(u.cd2)} s`:''}`},
   arc:{base:'inf',men:6,name:'Łucznicy',unit:'Oddział łuczników',pick:'x',pos:[100,150],ai:'arc',beh:'arc',label:'Łucznicy',init:u=>{u.aimMin=60;u.aimMax=360;u.reloadMax=3;},
     status:u=>u.aiming?`Odległość ${Math.round((u.aimR-60)/300*100)}% – puść A`:u.reload>0?'Napinają łuki…':'A: na wprost · trzymaj: łukiem'},
   eq:{base:'cav',men:4,name:'Jazda',unit:'Ala jazdy',pick:'y',pos:[72,'cav'],ai:'cav',beh:'acwSabre',label:'Jeźdźcy'},
-  bal:{base:'art',men:2,name:'Balista',unit:'Balista',pick:'b',pos:[44,170],ai:'artFlat',beh:'bal',label:'Obsługa',init:u=>{u.reloadMax=3.5;u.maxR=820;},
+  bal:{base:'art',men:2,name:'Balista',unit:'Balista',pick:'b',pos:[44,170],ai:'artFlat',beh:'bal',label:'Obsługa',init:u=>{u.reloadMax=3;u.maxR=600;},
     status:u=>u.reload>0?'Napinanie cięciwy…':'Gotowa – A: bełt na wprost (przebija szereg)'},
   ona:{base:'art',men:3,name:'Onager',unit:'Onager',pick:'b',pos:[44,370],ai:'artArc',beh:'acwCannon',label:'Obsługa',
-    init:u=>{u.fixedElev=60;u.minR=150;u.maxR=620;u.reloadBase=10;u.noPowder=true;u.projKind='stone';u.aimSpd=240;}},
+    init:u=>{u.fixedElev=60;u.minR=150;u.maxR=620;u.reloadBase=8.5;u.noPowder=true;u.projKind='stone';u.aimSpd=310;}},
   // --- Wrzesień 1939 ---
   rif:{base:'inf',men:6,name:'Piechota',unit:'Pluton',pick:'x',pos:[165,270],ai:'flat',beh:'rif',label:'Żołnierze',range:230,gren:true,init:u=>{u.reloadMax=1.7;},
     status:u=>`${u.supT>0?'PRZYGWOŻDŻENI · ':''}${u.coneOn?'SKOS – drążek góra–dół, puść A':u.reload>0?'Przeładowanie':'A: ogień · trzymaj = skos'} · RT: granat${u.cd2>0?` (${Math.ceil(u.cd2)} s)`:''}`},
@@ -1369,10 +1370,10 @@ const KD={
     status:u=>u.over?'Lufa przegrzana – czekaj':u.firing?'SERIA – drążek sieje na boki':'Trzymaj A = seria'},
   tank:{base:'tank',men:1,name:'Czołg',unit:'Czołg',pick:'y',pos:[84,400],ai:'tank',beh:'tank',label:'Pancerz',init:u=>{u.reloadMax=3.2;u.track=false;},
     status:u=>`${u.reload>0?'Ładowanie działa':'A: działo'} · RT: km`},
-  at:{base:'art',men:3,name:'Działo ppanc',unit:'Działo ppanc',pick:'b',pos:[44,170],ai:'artFlat',beh:'at',label:'Obsługa',init:u=>{u.reloadMax=2.6;u.maxR=820;},
+  at:{base:'art',men:3,name:'Działo ppanc',unit:'Działo ppanc',pick:'b',pos:[44,170],ai:'artFlat',beh:'at',label:'Obsługa',init:u=>{u.reloadMax=2.3;u.maxR=600;},
     status:u=>u.coneOn?'SKOS – drążek góra–dół, puść A':u.reload>0?'Ładowanie':'A: strzał · trzymaj = skos'},
   mor:{base:'art',men:2,name:'Moździerz',unit:'Moździerz',pick:'b',pos:[44,370],ai:'artArc',beh:'acwCannon',label:'Obsługa',mor:true,
-    init:u=>{u.fixedElev=70;u.minR=90;u.maxR=600;u.reloadBase=4.5;u.projKind='mshell';u.ammo2='he';u.aimSpd=300;},
+    init:u=>{u.fixedElev=70;u.minR=90;u.maxR=600;u.reloadBase=3.8;u.projKind='mshell';u.ammo2='he';u.aimSpd=390;},
     status:u=>acwStatus(u)+` · ${u.ammo2==='smoke'?'DYM':'odłamkowy'} (RT)`}
 };
 const ERAS={
@@ -1393,7 +1394,7 @@ const ERAS={
     info:{rif:['Piechota','6 żołnierzy · karabiny, granaty','A: ogień na wprost · RT: granat (psuje gąsienice).'],mg:['Ckm','3 ludzi · ciągła seria','Trzymaj A i prowadź serię. Przygważdża piechotę.'],
       tank:['Czołg','pancerz mocny z przodu','A: działo · RT: km. Rozjeżdża piechotę.'],at:['Działo ppanc','strzał płaski na wprost','Z bliska przebija czołg od przodu.'],
       mor:['Moździerz','wysoki tor, odłamki lub dym','RT: zmiana amunicji. Dym zasłania ogień.']},
-    hint:'X piechota/ckm/rusznica · Y czołg · B działo/moździerz · RT',
+    hint:'X piechota · Y czołg · B działa · LT nalot',
     sides:[{name:'Polacy',gen:'Polaków',coat:'#6d6b3e',coatD:'#50502d',pants:'#5f5e36',hat:'#585a33',ui:'#ff7a7a',uiD:'#8a2a2a',flag:['#ffffff','#d4213d'],veh:'#5e5a38',helm:'pl'},
            {name:'Niemcy',gen:'Niemców',coat:'#5e6655',coatD:'#454c40',pants:'#4f5648',hat:'#4c5149',ui:'#c8d4c0',uiD:'#4a5048',flag:['#4c5149','#c8d4c0'],veh:'#585d5e',helm:'de'}]}
 };
@@ -1437,8 +1438,8 @@ function arrowImpact(p){let hit=false;
 function artVert(u,y,dt){if(Math.abs(y)>.2){const ny=clamp(u.y+y*CLS.art.spd*Math.max(.3,passF('art',u.x,u.y))*dt,32,H-10);if(passF('art',u.x,ny)>0)u.y=ny;u.setup=.3;}}
 BEH.bal=function(u,dt,I){artVert(u,I.y,dt);
   if(I.Ap&&I.bat){if(u.reload>0||u.setup>0){if(I.hum)AU.bad();}
-    else if(useShot(u)){const dir=clDir(u.side);u.reload=3.5*(hAt(u.x,u.y)>0?.8:1);u.firedT=3;u.recoil=1;u.shotT=.3;
-      bullets.push({x:u.x+dir*12,y:u.y,vx:dir*430,vy:0,left:820,side:u.side,src:u.key,kind:'bolt',pk:.85,pierce:3});
+    else if(useShot(u)){const dir=clDir(u.side);u.reload=3*(hAt(u.x,u.y)>0?.8:1);u.firedT=3;u.recoil=1;u.shotT=.3;
+      bullets.push({x:u.x+dir*12,y:u.y,vx:dir*430,vy:0,left:artMaxRange(u),side:u.side,src:u.key,kind:'bolt',pk:.85,pierce:3});
       AU.burst(.3,900,'bandpass',2,.35,AU.pan(u.x));AU.tone(150,.15,'square',.07);G.stats[u.side].shots++;}}
   clCrew(u,false,dt);};
 
@@ -1473,8 +1474,8 @@ BEH.mg=function(u,dt,I){const{x,y,A}=I;if(u.over&&u.heat<.35)u.over=false;
         parts.push({k:'flash',x:g.x+dir*10,y:g.y-3,life:0,max:.04});if(R()<.5)AU.burst(.06,1900,'bandpass',1,.13,AU.pan(u.x));if(R()<.25)addSmoke(g.x+dir*9,g.y-3,1,false);G.stats[u.side].shots++;u.firedT=3;}}}};
 BEH.at=function(u,dt,I){const a=coneFire(u,I,dt);if(!(I.A&&I.bat))artVert(u,I.y,dt);
   if(a!==null){if(u.reload>0||u.setup>0){if(I.hum)AU.bad();}
-    else if(useShot(u)){const[cx,cy]=coneVec(u,a),bx=u.x+cx*14;u.reload=2.6;u.firedT=3;u.recoil=1;
-      const b={x:bx,y:u.y+cy*14,vx:cx*520,vy:cy*520,left:820,side:u.side,src:u.key,kind:'shell',pk:.6,boom:7,bk:.6};b.ap=bb=>{const tr=820-bb.left;return tr<300?.75:tr<550?.45:.25;};bullets.push(b);
+    else if(useShot(u)){const[cx,cy]=coneVec(u,a),bx=u.x+cx*14;u.reload=2.3;u.firedT=3;u.recoil=1;
+      const b={x:bx,y:u.y+cy*14,vx:cx*520,vy:cy*520,left:600,side:u.side,src:u.key,kind:'shell',pk:.6,boom:7,bk:.6};b.ap=bb=>{const tr=600-bb.left;return tr<300?.75:tr<550?.45:.25;};bullets.push(b);
       parts.push({k:'flash',x:bx,y:u.y-6,life:0,max:.08,big:1});addSmoke(bx,u.y-6,2,false);AU.cannon(u.x);G.shake=Math.max(G.shake,1.2);G.stats[u.side].shots++;}}
   clCrew(u,false,dt);};
 function nearBroken(x,y){if(!MAP.broken)return false;const tx=Math.floor(x/TS),ty=Math.floor(y/TS);for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)if(MAP.broken.has((ty+dy)*GW+tx+dx))return true;return false;}
@@ -1505,7 +1506,6 @@ function tankDestroy(e,m,kind){m.alive=false;G.stats[e.side].lost++;e.hitFlash=.
 function eraTick(dt){if(!G.fires)return;for(let i=G.fires.length-1;i>=0;i--){const f=G.fires[i];f.t-=dt;if(f.t<=0){G.fires.splice(i,1);continue;}
   if(R()<dt*4)parts.push({k:'smoke',x:f.x+(R()-.5)*8,y:f.y-10,vx:G.wind.x*8,vy:-6,r:3,g:6,life:0,max:4,a:.5});
   if(R()<dt*8)parts.push({k:'spark',x:f.x+(R()-.5)*10,y:f.y-8,vx:(R()-.5)*10,vy:-18,life:0,max:.4});}}
-function eraSprites(){}
 
 /* ================= KOMPUTER: nowe jednostki ================= */
 const CPUSCORE={leg:()=>45,arc:(u,f)=>f.some(e=>Math.abs(e.x-u.x)<380)&&u.reload<=0?52:30,mg:()=>44,tank:()=>50};
@@ -1767,6 +1767,7 @@ CPU.leg=function(u,dt,foes,dir,c){const forms=kdOf(u).forms;if(forms.includes('t
   const t=nearestBy(foes.filter(f=>f.type==='inf'),u)||nearestBy(foes,u),dx=Math.abs(t.x-u.x),dy=t.y-u.y;
   const threat=foes.some(f=>f.type==='cav'&&dist(f.x,f.y,u.x,u.y)<200)||foes.some(f=>(f.key==='arc'||f.key==='bal')&&Math.abs(f.x-u.x)<400);
   const want=threat&&dx>90?'phalanx':'line';if(want!==u.rf){const A=!c.lastA;c.lastA=A;return{x:0,y:0,A};}c.lastA=false;
+  if(u.key==='pik'&&foes.some(f=>f.type==='cav'&&dist(f.x,f.y,u.x,u.y)<220))return{x:0,y:0,A:false};
   if(dx>40){const v=steer(u,t.x,t.y,dt);return{x:v[0],y:v[1],A:false};}return{x:dir*.5,y:clamp(dy/20,-1,1),A:false};};
 Object.assign(CPU,{
   num(u,dt,foes,dir,c){const t=nearestBy(foes.filter(f=>f.key==='arc'||f.key==='bal'||f.key==='ona'),u)||nearestBy(foes,u),dx=(t.x-u.x)*dir,dy=t.y-u.y;
@@ -1935,7 +1936,7 @@ function noAmmo(u){if(!(u.noAmmoT>G.t)){msg(u.side,`${unitName(u)}: brak amunicj
 function useShot(u){if(u.shots===undefined)return true;if(u.shots<=0){noAmmo(u);return false;}u.shots--;if(u.shots===0)msg(u.side,`${unitName(u)}: ostatni pocisk!`);return true;}
 // czołg: trzymasz A – pasek odległości (60–460), puszczasz – pocisk spada w tej odległości w kierunku lufy
 function tankFire(u,range,manual){if(u.reload>0||G.state!=='battle')return false;if(!useShot(u))return false;
-  u.reload=3.2;u.firedT=3;u.recoil=1;const c=Math.cos(u.hd),s=Math.sin(u.hd),bx=u.x+c*18,by=u.y+s*10;
+  u.reload=2.7;u.firedT=3;u.recoil=1;const c=Math.cos(u.hd),s=Math.sin(u.hd),bx=u.x+c*18,by=u.y+s*10;
   const rr=clamp(range,u.aimMin,u.aimMax)*(1+(R()-.5)*(manual?.04:.12)),a=u.hd+(R()-.5)*(manual?.02:.05);
   projs.push({kind:'tshell',x:bx,y:by,sx:bx,sy:by,tx:u.x+Math.cos(a)*rr,ty:u.y+Math.sin(a)*rr,t:0,T:.15+rr/900,H:Math.max(4,rr*.04),h:0,a,bounce:0,side:u.side,src:u.key,hit:new Set(),low:false,rr,fromX:u.x,fromY:u.y});
   parts.push({k:'flash',x:bx,y:by-12,life:0,max:.1,big:1});addSmoke(bx,by-12,3,true);AU.cannon(u.x);G.shake=Math.max(G.shake,2);G.stats[u.side].shots++;
@@ -1954,9 +1955,9 @@ function tankGun(u,dt,I){const can=u.reload<=0&&(u.shots===undefined||u.shots>0)
   if(st===0){if(I.Ap){if(!can){if(I.hum){AU.bad();if(u.shots===0)noAmmo(u);}return;}u.tAim=1;u.aimA=clamp(relCone(u,u.hd),-CONE,CONE);if(I.hum)AU.ui();}return;}
   if(st===1){u.aimA=clamp(u.aimA+I.y*1.3*dt,-CONE,CONE);if(!I.A){u.tAim=2;u.tWait=0;}return;}
   if(st===2){u.tWait+=dt;if(Math.hypot(I.x,I.y)>.6||u.tWait>5){u.tAim=0;return;}if(I.Ap&&can){u.tAim=3;u.aiming=true;u.aimDir=1;u.aimR=u.aimMin;}return;}
-  if(I.A){u.aimR+=u.aimDir*300*dt;if(u.aimR>u.aimMax){u.aimR=u.aimMax;u.aimDir=-1;}if(u.aimR<u.aimMin){u.aimR=u.aimMin;u.aimDir=1;}}
+  if(I.A){u.aimR+=u.aimDir*390*dt;if(u.aimR>u.aimMax){u.aimR=u.aimMax;u.aimDir=-1;}if(u.aimR<u.aimMin){u.aimR=u.aimMin;u.aimDir=1;}}
   else{u.tAim=0;u.aiming=false;u.hd=tankAimH(u);tankFire(u,u.aimR,true);}}
-KD.tank.init=u=>{u.reloadMax=3.2;u.track=false;u.hd=u.side===0?0:Math.PI;u.aimMin=60;u.aimMax=460;};
+KD.tank.init=u=>{u.reloadMax=2.7;u.track=false;u.hd=u.side===0?0:Math.PI;u.aimMin=60;u.aimMax=460;};
 KD.tank.status=u=>u.tAim===1?'KIERUNEK: drążek góra–dół, puść A':u.tAim===2?'A: trzymaj = odległość · drążek = anuluj':u.tAim===3?`Odległość ${Math.round(u.aimR)} kroków – puść A`:`${u.reload>0?'Ładowanie działa':'Trzymaj A = kierunek strzału'} · RT: km`;
 // uzupełnianie amunicji: czołg i rusznica w swojej strefie, na postoju
 const _eraTick2=eraTick2;
@@ -1983,6 +1984,56 @@ CPU.tank=function(u,dt,foes,dir,c){
   return{x:0,y:0,A:u.reload<=0&&Math.abs(a)<=CONE,R:mg};};
 const idle0={x:0,y:0,A:false};
 
+/* ================= LOTNICTWO (XX wiek): nalot na wysokości wybranego oddziału ================= */
+// LT: samolot przelatuje nad polem na wysokości wybranego oddziału i zrzuca bomby nad połową wroga.
+// Ckm pod jego torem może go zestrzelić. Każda strona ma kilka nalotów na bitwę (odstęp 20 s).
+FACTIONS.pl.air={name:'PZL.23 Karaś',n:2};FACTIONS.de.air={name:'Ju 87 Stuka',n:2,siren:true};
+const AIR={alt:70,spd:230,bombs:5,cd:20,lead:.8};// bomba leci dalej z prędkością samolotu (lead) – pilot zrzuca ją z wyprzedzeniem
+function airReset(){G.planes=[];G.bombs=[];G.air=[0,1].map(s=>FAC[s].air?FAC[s].air.n:0);G.airCd=[0,0];G.cpuAirT=30+R()*15;}
+function callAir(side,y){const A=FAC[side].air;if(!A||G.state!=='battle')return false;
+  if(G.air[side]<=0||G.t<G.airCd[side]){if(humanOf(side)>=0)AU.bad();return false;}
+  G.air[side]--;G.airCd[side]=G.t+AIR.cd;const pl={side,dir:clDir(side),x:side===0?-60:W+60,y:clamp(y,40,H-20),alt:AIR.alt,bombs:AIR.bombs,dropX:0,down:false,siren:!!A.siren,sir:false};
+  pl.snd=planeSound(pl);G.planes.push(pl);msg(side,`Nalot! ${A.name} nad polem bitwy.`);return true;}
+function planeSound(pl){if(!AU.ok())return null;const c=AU.ctx,o=c.createOscillator(),o2=c.createOscillator(),f=c.createBiquadFilter(),g=c.createGain();
+  o.type=o2.type='sawtooth';o.frequency.value=82;o2.frequency.value=84.5;f.type='lowpass';f.frequency.value=700;g.gain.value=0;
+  o.connect(f);o2.connect(f);f.connect(g);let p=null;if(c.createStereoPanner){p=c.createStereoPanner();g.connect(p);p.connect(AU.master);}else g.connect(AU.master);
+  o.start();o2.start();g.gain.setTargetAtTime(.14,c.currentTime,.4);return{o,o2,g,p};}
+function planeSoundEnd(s){if(!s||!AU.ctx)return;const t=AU.ctx.currentTime;s.g.gain.setTargetAtTime(0,t,.3);s.o.stop(t+1.5);s.o2.stop(t+1.5);}
+function airTick(dt){if(!G.planes)return;
+  // komputer wzywa nalot na wysokości najliczniejszego oddziału gracza
+  if(G.mode==='cpu'&&G.state==='battle'&&G.air[1]>0&&G.t>G.airCd[1]){G.cpuAirT-=dt;if(G.cpuAirT<=0){G.cpuAirT=25+R()*20;
+    const tg=units.filter(u=>u.side===0&&!u.dead&&!u.gone&&u.state!=='enter'&&u.x<W*.6).sort((a,b)=>(b.n+(b.type==='tank'?3:0))-(a.n+(a.type==='tank'?3:0)))[0];if(tg)callAir(1,tg.y);}}
+  for(let i=G.planes.length-1;i>=0;i--){const pl=G.planes[i];
+    if(pl.down){pl.x+=pl.dir*AIR.spd*.7*dt;pl.alt-=45*dt;if(R()<dt*20)parts.push({k:'smoke',x:pl.x,y:pl.y-pl.alt,vx:0,vy:-4,r:3,g:6,life:0,max:2.5,a:.6});
+      if(pl.alt<=0){blast(pl.x,pl.y,14,.6,-1,'air');addSmoke(pl.x,pl.y,6,true);(G.fires||(G.fires=[])).push({x:pl.x,y:pl.y,t:20});planeSoundEnd(pl.snd);G.planes.splice(i,1);}continue;}
+    pl.x+=pl.dir*AIR.spd*dt;if(pl.snd&&pl.snd.p)pl.snd.p.pan.value=AU.pan(clamp(pl.x,0,W));
+    const over=pl.dir>0?pl.x>W/2:pl.x<W/2;
+    if(over&&pl.siren&&!pl.sir){pl.sir=true;AU.tone(420,1.6,'sawtooth',.07,0,700,2200);}
+    const fall=Math.sqrt(2*pl.alt/260),lx=pl.x+pl.dir*AIR.spd*AIR.lead*fall,enemyHalf=pl.dir>0?lx>W/2:lx<W/2;
+    if(enemyHalf&&pl.bombs>0&&Math.abs(pl.x-pl.dropX)>24&&lx>10&&lx<W-10&&units.some(e=>e.side!==pl.side&&!e.dead&&!e.gone&&Math.abs(e.x-lx)<40&&Math.abs(e.y-pl.y)<55)){
+      pl.dropX=pl.x;pl.bombs--;G.bombs.push({x:pl.x,y:pl.y+(R()-.5)*16,h:pl.alt,vh:0,vx:pl.dir*AIR.spd*AIR.lead,side:pl.side});AU.tone(1300,.7,'sine',.04,0,-900);}
+    // ogień przeciwlotniczy: ckm pod torem lotu
+    for(const u of units){if(u.side===pl.side||u.key!=='mg'||u.dead||u.gone||u.over||u.state==='enter')continue;const g=u.men.find(m=>m.alive);if(!g)continue;
+      if(Math.abs(g.y-pl.y)<90&&Math.abs(g.x-pl.x)<150){u.aaT=(u.aaT||0)-dt;if(u.aaT<=0){u.aaT=.12;parts.push({k:'pellet',x:g.x,y:g.y-6,x2:pl.x+(R()-.5)*20,y2:pl.y-pl.alt+(R()-.5)*10,life:0,max:.1});if(R()<.5)AU.burst(.05,1900,'bandpass',1,.1,AU.pan(g.x));}
+        if(R()<dt*.45){pl.down=true;msg(u.side,`${unitName(u)} zestrzelił samolot!`);AU.impact(pl.x);}}}
+    if(pl.x<-80||pl.x>W+80){planeSoundEnd(pl.snd);G.planes.splice(i,1);}}
+  for(let i=G.bombs.length-1;i>=0;i--){const b=G.bombs[i];b.vh+=260*dt;b.h-=b.vh*dt;b.x+=b.vx*dt;
+    if(b.h<=0){G.bombs.splice(i,1);blast(b.x,b.y,20,.9,b.side,'air');G.shake=Math.max(G.shake,3.5);AU.cannon(b.x);addSmoke(b.x,b.y-4,4,true);
+      for(const e of units)if(e.type==='tank'&&!e.dead&&!e.gone&&dist(e.x,e.y,b.x,b.y)<20)tankHit(e,.5,b.side,b.x,b.y-40);}}}
+// rysowanie: samoloty i spadające bomby nad polem (z cieniem na ziemi)
+function eraSprites(){if(!G.planes)return;
+  for(const b of G.bombs){const[x,y]=P(b.x,b.y);ctx.fillStyle='rgba(0,0,0,.3)';ctx.fillRect(Math.round(x)-1,Math.round(y),3,1);ctx.fillStyle='#2a2a26';ctx.fillRect(Math.round(x),Math.round(y-b.h)-2,2,4);}
+  for(const pl of G.planes)drawPlane(pl);}
+function drawPlane(pl){const[gx,gy]=P(pl.x,pl.y),S=SIDE[pl.side],c=pl.down?'#3a3630':(S.veh||'#6a6a5a');
+  ctx.fillStyle=`rgba(0,0,0,${Math.max(.08,.3-pl.alt*.002)})`;ctx.fillRect(Math.round(gx)-11,Math.round(gy),22,2);ctx.fillRect(Math.round(gx)-2,Math.round(gy)-3,5,8);
+  const x=Math.round(gx),y=Math.round(gy-pl.alt),r=spr(x,y,pl.dir>0);
+  r(-11,-2,21,4,c);r(-11,1,21,1,'rgba(0,0,0,.25)');r(-13,-6,3,5,c);r(-14,-2,5,1,c);
+  r(-4,1,9,2,'#2a2a28');r(-3,-1,7,1,'rgba(255,255,255,.25)');r(-1,-4,4,2,'#9ab4c8');
+  r(10,-1,2,2,'#1a1a18');r(12,-4,1,8,'rgba(230,230,230,.5)');
+  if(S.helm==='de'){r(-7,-2,1,3,'#111');r(-8,-1,3,1,'#111');}else{r(-8,-2,2,1,'#fff');r(-6,-2,2,1,'#d4213d');r(-8,-1,2,1,'#d4213d');r(-6,-1,2,1,'#fff');}
+  if(pl.down&&R()<.5){ctx.fillStyle='#ff9a40';ctx.fillRect(x-2,y-3,3,3);}}
+function airHUD(){if(!G.air)return;for(let p=0;p<2;p++){if(!FAC[p].air)continue;const n=G.air[p],cd=Math.max(0,Math.ceil(G.airCd[p]-G.t));
+  txt(`Lotnictwo ×${n}${n&&cd?` (${cd} s)`:''}${humanOf(p)>=0?' · LT':''}`,p?W-10:10,44,15,n?SIDE[p].ui:'#6a625a',p?'right':'left');}}
 /* ================= PRZEWAGI (kamień–papier–nożyce), UNIKI W RUCHU, MĄDRZEJSZY KOMPUTER ================= */
 // klasy jednostek – różne frakcje o tej samej roli dzielą klasę
 const UCLASS={inf:'inf',cav:'cav',lan:'lan',art:'art',
@@ -2080,9 +2131,10 @@ function drawHelp(){panel(40,40,W-80,H-80,BRASS);const pg=G.helpPage||0;
    ww2:[['Lewy drążek','Wszyscy idą równolegle. Czołg jeździ w każdą stronę, ale strzela tylko w przód i po skosach. Działo i moździerz tylko góra–dół.','WASD','Strzałki'],
     ['A','Krótko = strzał na wprost, trzymaj = skos do 45° (drążek góra–dół), puść = strzał · Ckm: trzymaj = seria, drążek sieje na boki · Czołg: trzymaj = kierunek, drugie A = odległość · Moździerz: trzymaj = siła','F / Spacja','Enter / K'],
     ['RT','Piechota: granat · Czołg: karabin maszynowy · Moździerz: odłamkowy / dymny','V','M'],['X / Y / B','Piechota, ckm, rusznica / czołg / działo i moździerz','R/T/G','J/I/L'],['LB / RB','Poprzedni / następny oddział','Q / E','U / O'],['Start / drążek','Rozstawienie: gotowi · w bitwie: pauza','Esc / 1','Backspace / 0'],
-    ['Samoobrona','Oddziały bez sterowania same strzelają w obronie do 75% zasięgu: piechota, ckm, rusznica, czołg. Moździerz i działo tylko pod Twoim sterowaniem. Ostrzał na wprost niszczy worki, ruiny, domy i murki – granat i moździerz lecą nad nimi.','','']],
-   pl17:[['Lewy drążek','Husaria w stępie: każdy kierunek. W szarży: góra–dół, w tył = zwrot. Pancerni, spahisi: jak szabliści. Rajtaria: każdy kierunek. Działa: góra–dół.','WASD','Strzałki'],
-    ['A','Husaria: szarża, potem cios koncerzem · Piechota: salwa · Pikinierzy: linia ↔ jeż · Rajtaria: pistolety · Działo: trzymaj = siła','F / Spacja','Enter / K'],
+    ['LT','Nalot: samolot leci na wysokości wybranego oddziału i bombarduje połowę wroga. Ckm może go zestrzelić.','L. Shift','P. Shift'],
+    ['Samoobrona','Oddziały bez sterowania same bronią się ogniem do 75% zasięgu (bez moździerza i działa).','','']],
+   pl17:[['Lewy drążek','Husaria stoi: góra–dół i powoli naprzód, bez cofania. W szarży: góra–dół, w tył = stój. Pikinierzy: A = piki w dół (stoją: na sztorc, idą: natarcie). Rajtaria: każdy kierunek.','WASD','Strzałki'],
+    ['A','Husaria: szarża; bez kopii cięcie koncerzem (także w miejscu) · Piechota: salwa · Pikinierzy: piki w dół ↔ w górę · Rajtaria: pistolety · Działo: trzymaj = siła','F / Spacja','Enter / K'],
     ['RT','Husaria w szarży: linia ↔ klin','V','M'],
     ['Kopie','Kopia husarza jest dłuższa od piki i pęka przy uderzeniu. Nowe kopie: po przejeździe przez pole albo 3 s postoju w swojej strefie.','',''],
     ['X / Y / B','Piechota i pikinierzy / jazda i husaria / działa','R/T/G','J/I/L'],['LB / RB','Poprzedni / następny oddział','Q / E','U / O'],['Start / drążek','Pauza','Esc / 1','Backspace / 0']]};
@@ -2203,13 +2255,15 @@ Object.assign(KD,{
   hus:{base:'cav',men:4,lance:true,name:'Husaria',unit:'Chorągiew husarska',pick:'y',pos:[72,'cav'],ai:'hus',beh:'hus',label:'Husarze',
     init:u=>{for(const m of u.men)m.kopia=true;},
     status:u=>{const al=u.men.filter(m=>m.alive),k=al.filter(m=>m.kopia).length;
-      return u.state==='ride'?`SZARŻA · kopie ${k}/${al.length} · A: koncerz · RT: ${u.form==='line'?'klin':'linia'}`:u.state==='halt'?'Zwrot – konie zwalniają':`Stępa · kopie ${k}/${al.length} · A: szarża`;}},
+      return u.state==='ride'?`SZARŻA · kopie ${k}/${al.length} · A: koncerz · RT: ${u.form==='line'?'klin':'linia'}`:u.state==='halt'?'Stój – konie zwalniają':k?`Stoją · kopie ${k}/${al.length} · A: szarża`:'Stoją bez kopii · A: cięcie · przód: szarża';}},
   pan:{base:'cav',men:4,name:'Pancerni',unit:'Chorągiew pancerna',pick:'y',pos:[72,'cav'],ai:'cav',beh:'acwSabre',label:'Jeźdźcy'},
   haj:{base:'inf',men:6,name:'Hajducy',unit:'Rota hajducka',pick:'x',pos:[160,270],ai:'flat',beh:'musk',label:'Hajducy',range:190,vol:plVol(2.6,190,.8),melee:1.6,sap:true,init:muskInit},
-  dz:{base:'art',men:3,name:'Działa',unit:'Działo',pick:'b',pos:[44,'art'],two:true,ai:'artArc',beh:'acwCannon',label:'Puszkarze',init:u=>{u.maxR=700;}},
+  dz:{base:'art',men:3,name:'Działa',unit:'Działo',pick:'b',pos:[44,'art'],two:true,ai:'artArc',beh:'acwCannon',label:'Puszkarze',init:u=>{u.maxR=560;u.reloadBase=4.6;}},
   mus:{base:'inf',men:6,name:'Muszkieterowie',unit:'Rota muszkieterów',pick:'x',pos:[165,200],ai:'flat',beh:'musk',label:'Muszkieterzy',range:210,vol:plVol(2.8,210,.8),init:muskInit},
-  pik:{base:'inf',men:8,name:'Pikinierzy',unit:'Rota pikinierów',pick:'x',pos:[175,330],ai:'leg',beh:'leg',label:'Pikinierzy',slots:legSlots2,forms:['line','phalanx'],init:u=>{u.rf='line';},
-    status:u=>`${u.rf==='phalanx'?'Jeż – piki w przód':'Linia'}${u.formT>0?' (zmiana)':''} · A: szyk`},
+  pik:{base:'inf',men:8,name:'Pikinierzy',unit:'Rota pikinierów',pick:'x',pos:[175,330],ai:'leg',beh:'leg',label:'Pikinierzy',
+    // piki w dół: szeroki jeż w dwóch szeregach na przemian (jak linia, ale zwarty) – zatrzymuje całą szarżę, nie tylko środek
+    slots:(u,n)=>u.rf==='phalanx'?Array.from({length:n},(_,j)=>[-clDir(u.side)*(j%2)*7,(j-(n-1)/2)*8]):legSlots2(u,n),forms:['line','phalanx'],init:u=>{u.rf='line';},
+    status:u=>`${u.rf!=='phalanx'?'Marsz – piki w górę, słabi':pikBrace(u)?'NA SZTORC – stop dla jazdy':'NATARCIE – kłują piechotę'}${u.formT>0?' (zmiana)':''} · A: ${u.rf==='phalanx'?'piki w górę':'piki w dół'}`},
   rajt:{base:'cav',men:4,name:'Rajtaria',unit:'Kompania rajtarów',pick:'y',pos:[84,'cav'],ai:'skirm',beh:'skirm',label:'Rajtarzy',spd:44,vol:plVol(3.2,85,.6,{spd:320,kind:'pistol'}),
     status:u=>u.reload>0?'Nabijają pistolety…':'Ruch w każdą stronę · A: salwa z pistoletów'},
   strz:{base:'inf',men:6,name:'Strzelcy',unit:'Prikaz strzelców',pick:'x',pos:[150,270],ai:'flat',beh:'musk',label:'Strzelcy',range:180,vol:plVol(3,180,.75),melee:1.3,init:muskInit},
@@ -2224,7 +2278,7 @@ const PL17INFO={
   haj:['Hajducy','6 piechurów · rusznice i czekany','A: salwa. Rozbierają płoty i palisady.'],
   dz:['Działa','działo + 3 puszkarzy','Trzymaj A = siła. Kula łamie płoty i wały.'],
   mus:['Muszkieterowie','6 strzelców · ciężkie muszkiety','A: salwa – daleko, ale wolno ładują.'],
-  pik:['Pikinierzy','8 ludzi · długie piki','A: linia ↔ jeż. Jeż zatrzymuje jazdę.'],
+  pik:['Pikinierzy','8 ludzi · długie piki','A: piki w dół. Stoją: na sztorc, idą: natarcie.'],
   rajt:['Rajtaria','4 rajtarów · pistolety','Każdy kierunek. A: pistolety z bliska.'],
   strz:['Strzelcy','6 ludzi · rusznice i berdysze','A: salwa. Berdysze – groźni wręcz.'],
   boj:['Jazda bojarska','4 jeźdźców · szable','Kłus, galop, dęba. A: cięcie.'],
@@ -2307,12 +2361,16 @@ BEH.skirm=function(u,dt,I){const kd=kdOf(u),sp=kd.spd||44;clMoveMen(u,I.x*sp,I.y
   if(I.Ap&&I.bat&&!clVolley(u,kd.vol)&&I.hum)AU.bad();};
 // husaria: stępa (każdy kierunek) → szarża z kopiami → koncerz; zwrot drążkiem w tył; po przejeździe przez pole wraca z nowymi kopiami
 BEH.hus=function(u,dt,I){const{x,y,dir}=I;
+  // stoją: ruch tylko w górę, w dół i powoli naprzód – husaria się nie cofa
   if(u.state==='idle'){u.charging=false;u.gallop=false;u.s=Math.max(0,u.s-dt*1.2);
-    clMoveMen(u,x*CLS.hus.walk,y*CLS.hus.walk,dt,false,2,I.hum);
-    const al=u.men.filter(m=>m.alive),need=al.some(m=>!m.kopia),still=!al.some(m=>m.mv>.2);
+    clMoveMen(u,(x*dir<0?0:x)*CLS.hus.walk,y*CLS.hus.walk,dt,false,2,I.hum);
+    const al=u.men.filter(m=>m.alive),armed=al.some(m=>m.kopia),need=al.some(m=>!m.kopia),still=!al.some(m=>m.mv>.2);
     if(need&&still&&inZone(u.side,u.x)){u.armT=(u.armT||0)+dt;if(u.armT>3){u.armT=0;for(const m of al)m.kopia=true;msg(u.side,`${unitName(u)}: nowe kopie z taboru!`);AU.ui();}}else u.armT=0;
-    if(I.bat&&I.Ap){u.state='ride';u.form='line';u.charging=true;u.gallop=true;AU.bugle(BUG.charge);msg(u.side,`${unitName(u)}: husaria – szarża!`);}}
-  else if(u.state==='halt'){u.charging=false;u.gallop=false;clMoveMen(u,0,0,dt,false,1.5,I.hum);if(u.rearT<=0)u.state='idle';}
+    u.fwdT=I.bat&&x*dir>.5?(u.fwdT||0)+dt:0;
+    if(I.bat&&((I.Ap&&armed)||u.fwdT>.8)){u.state='ride';u.form='line';u.fwdT=0;u.charging=true;u.gallop=true;AU.bugle(BUG.charge);msg(u.side,`${unitName(u)}: husaria – szarża!`);}
+    else if(I.bat&&I.Ap&&u.slashCd<=0){u.slashT=.4;u.slashCd=.55;AU.clash(u.x);}}
+  else if(u.state==='halt'){u.charging=false;u.gallop=false;clMoveMen(u,0,0,dt,false,1.5,I.hum);if(u.rearT<=0)u.state='idle';
+    if(I.bat&&I.Ap&&u.slashCd<=0){u.slashT=.4;u.slashCd=.55;AU.clash(u.x);}}
   else{u.gallop=true;u.charging=true;
     if(I.inp&&x*dir<-.5&&!u.men.some(m=>m.alive&&m.wrap)){u.state='halt';u.rearT=.6;u.gallop=false;u.charging=false;AU.tone(700,.35,'sawtooth',.05,0,-300,1400);return;}
     if(I.Rp){u.form=u.form==='line'?'wedge':'line';AU.ui();}
@@ -2329,13 +2387,14 @@ function lanceSplinter(m,side){const dir=clDir(side);for(let i=0;i<6;i++)parts.p
   AU.burst(.12,2600,'highpass',2,.25,AU.pan(m.x));}
 
 /* --- walka wręcz XVII w.: kopia dłuższa od piki, jeż pikinierów, zbroja husarii --- */
+const pikBrace=u=>u.rf==='phalanx'&&u.formT<=0&&!u.men.some(m=>m.alive&&m.mv>.3);
 function pl17Strike(a,b,m,o,d){let p;const kd=kdOf(a),front=(o.x-m.x)*clDir(a.side)>-2;
   if(a.key==='hus'){if(a.state==='ride'&&a.gallop&&m.kopia&&front)p=.7;else if(a.slashT>0)p=b.type==='cav'?.32:.48;else p=a.state==='ride'&&a.gallop&&b.type!=='cav'&&d<7?.08:.02;}
   else if(a.type==='cav'){if(kd.beh==='skirm')p=.03;else if(a.slashT>0)p=b.type==='cav'?(b.slashT>0?.22:.4):.45;else if(a.gallop&&b.type!=='cav'&&d<6)p=.07;else p=.01;}
-  else if(a.key==='pik')p=a.rf==='phalanx'?.06*(b.type==='cav'?2.6:1):.045*(b.type==='cav'?1.6:1);
+  else if(a.key==='pik')p=a.rf!=='phalanx'?.02*(b.type==='cav'?1.5:1):pikBrace(a)?.045*(b.type==='cav'?3.6:1):.075*(b.type==='cav'?1.6:1);
   else if(a.type==='inf')p=(b.type==='cav'?.035:b.type==='art'?.06:.025)*(kd.melee||1);
   else p=.01;
-  if(b.key==='pik'){const fr=isFront(b,m.x);if(b.rf==='phalanx'&&fr)p*=a.key==='hus'&&m.kopia?.4:a.type==='cav'?.2:.5;else if(!fr)p*=1.25;else if(a.key==='hus')p*=1.15;}
+  if(b.key==='pik'){const fr=isFront(b,m.x),br=pikBrace(b);if(b.rf==='phalanx'&&fr)p*=a.key==='hus'&&m.kopia?(br?.3:.5):a.type==='cav'?(br?.12:.3):br?.6:.5;else if(!fr)p*=1.25;else p*=1.15;}
   if(b.key==='hus')p*=.8;
   if(a.formT>0)p*=.6;
   return p;}
@@ -2348,7 +2407,7 @@ clMelee=function(dt){clMeleeT-=dt;if(clMeleeT>0)return;clMeleeT=.1;
   for(const a of L)for(const b of L){if(a.side===b.side||Math.abs(a.x-b.x)>100||Math.abs(a.y-b.y)>100)continue;
     const base=a.type==='cav'?(a.lance?13:11):a.type==='tank'?9:a.type==='ele'?10:7;
     for(const m of a.men){if(!m.alive||m.cool>0)continue;const kop=a.key==='hus'&&m.kopia&&a.state==='ride'&&a.gallop;
-      const reach=kop?17:a.key==='pik'?(a.rf==='phalanx'?13:10):base;
+      const reach=kop?17:a.key==='pik'?(a.rf!=='phalanx'?9:pikBrace(a)?14:13):base;
       for(const o of b.men){if(!o.alive)continue;const d=dist(m.x,m.y,o.x,o.y);if(d>reach)continue;
         const p=clStrike(a,b,m,o,d);if(p<=0)continue;const hit=R()<p;
         if(kop&&(o.x-m.x)*clDir(a.side)>-2&&(hit||R()<.25)){m.kopia=false;lanceSplinter(m,a.side);}
@@ -2393,10 +2452,10 @@ Object.assign(CPUSCORE,{hus:u=>u.state==='ride'?(cavAvoid(u)?72:50):(G.t<8?12:46
 CPU.hus=function(u,dt,foes,dir,c){const al=u.men.filter(m=>m.alive),armed=al.filter(m=>m.kopia).length;
   const soft=foes.filter(f=>!(f.key==='pik'&&f.rf==='phalanx'));const t=bestTarget(u,soft.length?soft:foes)||nearestBy(foes,u);
   if(!t||u.state==='halt')return idle0;
-  if(u.state==='idle'){
-    if(armed<al.length*.5){if(inZone(u.side,u.x))return idle0;const hx=u.side===0?DEPLOY*.45:W-DEPLOY*.45,back=Math.abs(u.x-hx),fwd=u.side===0?W-u.x:u.x;
-      if(back<fwd*.8){const v=steer(u,hx,u.y,dt);return{x:v[0],y:v[1],A:false};}}
-    const dy=t.y-u.y,go=Math.abs(dy)<16&&!c.lastA;c.lastA=go;return{x:0,y:clamp(dy/20,-1,1),A:go};}
+  if(u.state==='idle'){let nr=1e9;for(const f of foes)for(const o of f.men)if(o.alive&&Math.abs(o.y-u.y)<20)nr=Math.min(nr,Math.abs(o.x-u.x));
+    if(!armed&&nr<26){const s=u.slashCd<=0&&!c.lastA;c.lastA=s;return{x:0,y:0,A:s};}
+    const dy=t.y-u.y,ok=Math.abs(dy)<16;if(!armed)return{x:ok?dir:0,y:clamp(dy/20,-1,1),A:false};
+    const go=ok&&!c.lastA;c.lastA=go;return{x:0,y:clamp(dy/20,-1,1),A:go};}
   let ty=t.y,bd=1e9,near=1e9;
   for(const f of foes)for(const o of f.men){if(!o.alive)continue;const ax=(o.x-u.x)*dir;if(ax<-5||ax>300)continue;const d=ax+Math.abs(o.y-u.y)*1.5;if(d<bd){bd=d;ty=o.y;}if(Math.abs(o.y-u.y)<20)near=Math.min(near,Math.abs(ax));}
   let iy=clamp((ty-u.y)/16,-1,1);const av=cavAvoid(u);if(av)iy=av;
@@ -2439,7 +2498,8 @@ function pl17Soldier(x,y,s,right,anim,moving,aim,flag,crew,flash){
   else if(key==='haj'){r(-2,-12,4,2,'#7a2a22');r(-2,-11,4,1,'#4a3020');r(1,-14,1,2,'#e8e2d0');}
   else{r(-2,-12,4,2,S.hat);r(-2,-11,4,1,'#3a2a1a');}
   if(crew)return true;
-  if(key==='pik'){if(u&&u.rf==='phalanx'){r(1,-9,14,1,'#6a4a2a');r(15,-9,2,1,'#c8ccd0');}else{r(2,-26,1,23,'#6a4a2a');r(2,-27,1,2,'#c8ccd0');}}
+  if(key==='pik'){if(u&&u.rf==='phalanx'&&u.men&&pikBrace(u)){for(let k=0;k<14;k++)r(k-1,-2-Math.round(k*.85),1,1,'#6a4a2a');r(13,-15,2,1,'#c8ccd0');}
+    else if(u&&u.rf==='phalanx'){r(1,-9,14,1,'#6a4a2a');r(15,-9,2,1,'#c8ccd0');}else{r(2,-26,1,23,'#6a4a2a');r(2,-27,1,2,'#c8ccd0');}}
   else if(aim){r(1,-8,7,1,'#4e3520');r(8,-8,1,1,'#9aa0a6');}
   else{r(2,-15,1,10,'#4e3520');r(2,-16,1,1,'#9aa0a6');
     if(key==='strz'){r(-3,-16,1,12,'#6a4a2a');r(-5,-17,2,4,'#c8ccd0');}else if(key==='haj'){r(-3,-7,1,4,'#6a4a2a');r(-4,-8,2,2,'#c8ccd0');}}
@@ -2503,8 +2563,8 @@ Object.assign(FACTIONS,{
     presets:[{n:'Napoleon',inf:6,cav:3,lan:2,art:3},{n:'Kirasjerzy',inf:5,cav:4,lan:2,art:3},{n:'Wielka bateria',inf:6,cav:2,lan:2,art:4}]},
   union_g:facOf('union',{keys:['inf','cav','art'],total:12,max:{inf:9,cav:2,art:4},cry:'union',presets:[{n:'Meade',inf:8,cav:1,art:3},{n:'Mur piechoty',inf:9,cav:1,art:2},{n:'Działa',inf:7,cav:1,art:4}]}),
   confed_g:facOf('confed',{keys:['inf','cav','art'],total:14,max:{inf:10,cav:2,art:4},cry:'confed',presets:[{n:'Lee i Pickett',inf:9,cav:1,art:4},{n:'Szarża',inf:10,cav:2,art:2},{n:'Kanonada',inf:8,cav:2,art:4}]}),
-  pl_c:facOf('pl',{total:14,cry:'pl',presets:[{n:'Anders',rif:6,mg:2,ppk:1,tank:2,at:1,mor:2},{n:'Szturm',rif:7,mg:2,ppk:1,tank:1,at:1,mor:2},{n:'Pancerni',rif:5,mg:2,ppk:1,tank:3,at:1,mor:2}]}),
-  de_c:facOf('de',{total:12,cry:'de',presets:[{n:'Spadochroniarze',rif:5,mg:3,ppk:0,tank:1,at:2,mor:1},{n:'Gniazda ckm',rif:4,mg:4,ppk:0,tank:1,at:2,mor:1},{n:'Obrona',rif:6,mg:3,ppk:0,tank:0,at:2,mor:1}]})
+  pl_c:facOf('pl',{total:14,cry:'pl',air:{name:'Spitfire',n:3},presets:[{n:'Anders',rif:6,mg:2,ppk:1,tank:2,at:1,mor:2},{n:'Szturm',rif:7,mg:2,ppk:1,tank:1,at:1,mor:2},{n:'Pancerni',rif:5,mg:2,ppk:1,tank:3,at:1,mor:2}]}),
+  de_c:facOf('de',{total:12,cry:'de',air:{name:'Messerschmitt Bf 109',n:1},presets:[{n:'Spadochroniarze',rif:5,mg:3,ppk:0,tank:1,at:2,mor:1},{n:'Gniazda ckm',rif:4,mg:4,ppk:0,tank:1,at:2,mor:1},{n:'Obrona',rif:6,mg:3,ppk:0,tank:0,at:2,mor:1}]})
 });
 Object.assign(VARIANTS,{
   cannae:{era:'rome',scen:true,fac:['carth_k','rom_k'],sub:'Kanny · 2 sierpnia 216 p.n.e. · Hannibal kontra Rzym',hud:'Kanny 216 p.n.e.',

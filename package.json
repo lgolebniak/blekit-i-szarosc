@@ -5,7 +5,7 @@
   "scripts": {
     "buduj": "node narzedzia/buduj.mjs",
     "sprawdz": "node narzedzia/buduj.mjs --sprawdz",
-    "test": "node narzedzia/buduj.mjs --sprawdz && node narzedzia/celowanie.js && node narzedzia/symulacja.js",
+    "test": "node narzedzia/buduj.mjs --sprawdz && node narzedzia/celowanie.js && node narzedzia/mechanika.js && node narzedzia/symulacja.js",
     "pojedynek": "node narzedzia/pojedynek.js",
     "probki": "node narzedzia/probki-dzwieku.js"
   },

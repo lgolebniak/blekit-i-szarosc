@@ -31,8 +31,8 @@ function arrowImpact(p){let hit=false;
 function artVert(u,y,dt){if(Math.abs(y)>.2){const ny=clamp(u.y+y*CLS.art.spd*Math.max(.3,passF('art',u.x,u.y))*dt,32,H-10);if(passF('art',u.x,ny)>0)u.y=ny;u.setup=.3;}}
 BEH.bal=function(u,dt,I){artVert(u,I.y,dt);
   if(I.Ap&&I.bat){if(u.reload>0||u.setup>0){if(I.hum)AU.bad();}
-    else if(useShot(u)){const dir=clDir(u.side);u.reload=3.5*(hAt(u.x,u.y)>0?.8:1);u.firedT=3;u.recoil=1;u.shotT=.3;
-      bullets.push({x:u.x+dir*12,y:u.y,vx:dir*430,vy:0,left:820,side:u.side,src:u.key,kind:'bolt',pk:.85,pierce:3});
+    else if(useShot(u)){const dir=clDir(u.side);u.reload=3*(hAt(u.x,u.y)>0?.8:1);u.firedT=3;u.recoil=1;u.shotT=.3;
+      bullets.push({x:u.x+dir*12,y:u.y,vx:dir*430,vy:0,left:artMaxRange(u),side:u.side,src:u.key,kind:'bolt',pk:.85,pierce:3});
       AU.burst(.3,900,'bandpass',2,.35,AU.pan(u.x));AU.tone(150,.15,'square',.07);G.stats[u.side].shots++;}}
   clCrew(u,false,dt);};
 

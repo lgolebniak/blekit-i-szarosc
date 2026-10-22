@@ -18,8 +18,8 @@ Object.assign(FACTIONS,{
     presets:[{n:'Napoleon',inf:6,cav:3,lan:2,art:3},{n:'Kirasjerzy',inf:5,cav:4,lan:2,art:3},{n:'Wielka bateria',inf:6,cav:2,lan:2,art:4}]},
   union_g:facOf('union',{keys:['inf','cav','art'],total:12,max:{inf:9,cav:2,art:4},cry:'union',presets:[{n:'Meade',inf:8,cav:1,art:3},{n:'Mur piechoty',inf:9,cav:1,art:2},{n:'Działa',inf:7,cav:1,art:4}]}),
   confed_g:facOf('confed',{keys:['inf','cav','art'],total:14,max:{inf:10,cav:2,art:4},cry:'confed',presets:[{n:'Lee i Pickett',inf:9,cav:1,art:4},{n:'Szarża',inf:10,cav:2,art:2},{n:'Kanonada',inf:8,cav:2,art:4}]}),
-  pl_c:facOf('pl',{total:14,cry:'pl',presets:[{n:'Anders',rif:6,mg:2,ppk:1,tank:2,at:1,mor:2},{n:'Szturm',rif:7,mg:2,ppk:1,tank:1,at:1,mor:2},{n:'Pancerni',rif:5,mg:2,ppk:1,tank:3,at:1,mor:2}]}),
-  de_c:facOf('de',{total:12,cry:'de',presets:[{n:'Spadochroniarze',rif:5,mg:3,ppk:0,tank:1,at:2,mor:1},{n:'Gniazda ckm',rif:4,mg:4,ppk:0,tank:1,at:2,mor:1},{n:'Obrona',rif:6,mg:3,ppk:0,tank:0,at:2,mor:1}]})
+  pl_c:facOf('pl',{total:14,cry:'pl',air:{name:'Spitfire',n:3},presets:[{n:'Anders',rif:6,mg:2,ppk:1,tank:2,at:1,mor:2},{n:'Szturm',rif:7,mg:2,ppk:1,tank:1,at:1,mor:2},{n:'Pancerni',rif:5,mg:2,ppk:1,tank:3,at:1,mor:2}]}),
+  de_c:facOf('de',{total:12,cry:'de',air:{name:'Messerschmitt Bf 109',n:1},presets:[{n:'Spadochroniarze',rif:5,mg:3,ppk:0,tank:1,at:2,mor:1},{n:'Gniazda ckm',rif:4,mg:4,ppk:0,tank:1,at:2,mor:1},{n:'Obrona',rif:6,mg:3,ppk:0,tank:0,at:2,mor:1}]})
 });
 Object.assign(VARIANTS,{
   cannae:{era:'rome',scen:true,fac:['carth_k','rom_k'],sub:'Kanny · 2 sierpnia 216 p.n.e. · Hannibal kontra Rzym',hud:'Kanny 216 p.n.e.',
