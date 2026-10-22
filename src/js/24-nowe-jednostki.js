@@ -65,14 +65,15 @@ BEH.tank=function(u,dt,I){const{x,y}=I,mag=Math.min(1,Math.hypot(x,y));u.moving=
   if(u.tAim)u.hd+=clamp(angDiff(u.hd,tankAimH(u)),-1.8*dt,1.8*dt);
   else if(mag>.25){const want=Math.atan2(y,x);let d=angDiff(u.hd,want),rev=false;if(Math.abs(d)>2.4){rev=true;d=angDiff(u.hd,want+Math.PI);}
     u.hd+=clamp(d,-1.3*dt,1.3*dt);
-    if(!u.track&&mag>.6&&Math.cos(d)>.7&&!u.aiming){const pf=passF('tank',u.x,u.y),f=pf>0?pf:.5,sp=(rev?-12:26)*f*mag;
+    if(!u.track&&mag>.6&&Math.cos(d)>.7&&!u.aiming){const pf=passF('tank',u.x,u.y),f=pf>0?pf:.5,sp=(rev?-12:26)*f*mag*(u.slow?.6:1);
       const ok=(X,Y)=>{const t=tAt(X,Y);if(t===T.WATER)return I.hum;return passF('tank',X,Y)>0;};
       const nx=clamp(u.x+Math.cos(u.hd)*sp*dt,10,W-10),ny=clamp(u.y+Math.sin(u.hd)*sp*dt,34,H-12);
       if(ok(nx,ny)){u.x=nx;u.y=ny;u.moving=true;}else if(ok(nx,u.y)){u.x=nx;u.moving=true;}else if(ok(u.x,ny)){u.y=ny;u.moving=true;}}
     u.anim=(u.anim||0)+dt*10;if(u.moving&&R()<.3)dustAt(u.x-Math.cos(u.hd)*12,u.y-Math.sin(u.hd)*6,1,'120,105,80');}
   const c=Math.cos(u.hd),s=Math.sin(u.hd);
   if(I.bat)tankGun(u,dt,I);else u.aiming=false;
-  if(I.R&&I.bat){u.mgT=(u.mgT||0)-dt;if(u.mgT<=0){u.mgT=.14;bullets.push({x:u.x+c*12,y:u.y+s*6,vx:c*360+(R()-.5)*10,vy:s*360+(R()-.5)*18,left:320,side:u.side,src:u.key,kind:'mg',pk:.25,sup:true});
+  if(u.over&&u.heat<.35)u.over=false;const km=I.R&&I.bat&&!u.over;if(!km)u.heat=Math.max(0,(u.heat||0)-dt*.22);
+  if(km){u.heat=(u.heat||0)+dt*.3;if(u.heat>=1){u.over=true;msg(u.side,`${unitName(u)}: km przegrzany!`);}u.mgT=(u.mgT||0)-dt;if(u.mgT<=0){u.mgT=.14;bullets.push({x:u.x+c*12,y:u.y+s*6,vx:c*360+(R()-.5)*10,vy:s*360+(R()-.5)*18,left:320,side:u.side,src:u.key,kind:'mg',pk:.25,sup:true});
       parts.push({k:'flash',x:u.x+c*12,y:u.y+s*6-7,life:0,max:.04});if(R()<.5)AU.burst(.05,1900,'bandpass',1,.1,AU.pan(u.x));}}
   if(tAt(u.x,u.y)===T.WIRE)crushWire(u.x,u.y);
   if(tAt(u.x,u.y)===T.BRIDGE&&nearBroken(u.x,u.y)&&R()<dt*.9){breakBridge(u.x,u.y,u.side);msg(u.side,`${unitName(u)}: most załamał się pod czołgiem!`);}
@@ -142,6 +143,8 @@ Object.assign(CPU,{
 function eraSoldier(x,y,s,right,anim,moving,aim,flag,crew,flash){
   const u=DRAWU,S=SIDE[s],r=spr(x,y,right),skin='#d7ae86',key=u&&u.key;
   ctx.fillStyle='rgba(0,0,0,.28)';ctx.fillRect(x-3,y-1,6,2);
+  if(G.era==='ww2'&&u&&u.prone&&u.type==='inf'){r(-6,-2,3,2,S.pants);r(-3,-3,6,3,flash?'#fff':S.coat);r(3,-4,2,2,skin);r(2,-5,4,1,S.hat);r(5,-3,6,1,'#3e2a18');
+    if(u.dug){r(5,-1,7,2,'#6a5236');r(6,-2,5,1,'#8a7048');}return true;}
   if(G.era==='ww2'&&u&&(u.supT>0||((key==='mg'||key==='ppk')&&DRAWI===0)||u.type==='art')){
     if((key==='mg'||key==='ppk')&&DRAWI===0){r(-6,-2,3,2,S.pants);r(-3,-3,5,3,S.coat);r(2,-4,2,2,skin);r(1,-5,4,1,S.hat);
       if(key==='mg'){r(4,-3,7,1,'#26282a');r(10,-3,1,1,'#26282a');r(7,-2,1,2,'#26282a');if(u.firing&&Math.floor(G.t*20)%2)r(11,-4,2,2,'#fff2a0');}

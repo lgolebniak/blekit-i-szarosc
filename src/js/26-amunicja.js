@@ -30,7 +30,7 @@ function tankGun(u,dt,I){const can=u.reload<=0&&(u.shots===undefined||u.shots>0)
   // etap 4: siła ustalona, strzał gdy kadłub obróci się w kierunek strzału
   if(Math.abs(angDiff(u.hd,tankAimH(u)))<.1){u.tAim=0;u.aiming=false;u.hd=tankAimH(u);tankFire(u,u.aimR,true);}}
 KD.tank.init=u=>{u.reloadMax=2.7;u.track=false;u.hd=u.side===0?0:Math.PI;u.aimMin=60;u.aimMax=460;};
-KD.tank.status=u=>u.tAim===4?'Obrót do strzału…':u.tAim===1?'KIERUNEK: drążek góra–dół, puść A':u.tAim===2?'A: trzymaj = odległość · drążek = anuluj':u.tAim===3?`Odległość ${Math.round(u.aimR)} kroków – puść A`:`${u.reload>0?'Ładowanie działa':'Trzymaj A = kierunek strzału'} · RT: km`;
+KD.tank.status=u=>u.tAim===4?'Obrót do strzału…':u.tAim===1?'KIERUNEK: drążek góra–dół, puść A':u.tAim===2?'A: trzymaj = odległość · drążek = anuluj':u.tAim===3?`Odległość ${Math.round(u.aimR)} kroków – puść A`:`${u.reload>0?'Ładowanie działa':'Trzymaj A = kierunek strzału'} · RT: km${u.over?' PRZEGRZANY':''}${u.track?' · unieruchomiony':u.slow?' · uszkodzony':''}`;
 // uzupełnianie amunicji: czołg i rusznica w swojej strefie, na postoju
 const _eraTick2=eraTick2;
 function eraTick3(dt){_eraTick2(dt);if(!G.ammoLimit)return;
@@ -41,7 +41,7 @@ function eraTick3(dt){_eraTick2(dt);if(!G.ammoLimit)return;
 AUTO.tank=function(u,dt){const c=Math.cos(u.hd||0),s=Math.sin(u.hd||0);
   for(const e of units){if(e.side===u.side||e.dead||e.gone||e.state==='enter')continue;const d=dist(u.x,u.y,e.x,e.y),da=Math.abs(angDiff(u.hd||0,Math.atan2(e.y-u.y,e.x-u.x)));
     if(u.reload<=0&&!u.aiming&&!u.tAim&&d<u.aimMax*AUTO_RANGE&&d>u.aimMin&&da<.06&&Math.abs(relCone(u,u.hd))<=CONE&&(u.shots===undefined||u.shots>0))tankFire(u,d,false);
-    if(e.type==='inf'&&d<320*AUTO_RANGE&&da<.2){u.mgT=(u.mgT||0)-dt;if(u.mgT<=0){u.mgT=.14;bullets.push({x:u.x+c*12,y:u.y+s*6,vx:c*360,vy:s*360+(R()-.5)*18,left:320*AUTO_RANGE,side:u.side,src:u.key,kind:'mg',pk:.25,sup:true});
+    if(e.type==='inf'&&d<320*AUTO_RANGE&&da<.2&&!u.over){u.heat=(u.heat||0)+dt*.3;if(u.heat>=1)u.over=true;u.mgT=(u.mgT||0)-dt;if(u.mgT<=0){u.mgT=.14;bullets.push({x:u.x+c*12,y:u.y+s*6,vx:c*360,vy:s*360+(R()-.5)*18,left:320*AUTO_RANGE,side:u.side,src:u.key,kind:'mg',pk:.25,sup:true});
       if(R()<.5)AU.burst(.05,1900,'bandpass',1,.1,AU.pan(u.x));}}}};
 const _autoPpk=AUTO.ppk;AUTO.ppk=function(u,dt){if(u.shots===0)return;const before=u.reload;_autoPpk(u,dt);if(u.shots!==undefined&&u.reload>before)u.shots--;};
 // komputer: czołg celuje odległością, bez amunicji wraca po zapasy

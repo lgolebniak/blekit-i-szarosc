@@ -54,7 +54,8 @@ function drawHelp(){panel(40,40,W-80,H-80,BRASS);const pg=G.helpPage||0;
     ['Kartagina / Galowie','Libijczycy: A = linia ↔ falanga · procarze jak łucznicy · Numidowie: ruch w każdą stronę, A = oszczepy · słonie: A = szarża, ranne wpadają w panikę · Galowie: A = furia, potem zmęczenie','',''],['X / Y / B','Legion i łucznicy / jazda / balista i onager','R/T/G','J/I/L'],['LB / RB','Poprzedni / następny oddział','Q / E','U / O'],['Start / drążek','Pauza','Esc / 1','Backspace / 0']],
    ww2:[['Lewy drążek','Wszyscy idą równolegle. Czołg jeździ w każdą stronę, ale strzela tylko w przód i po skosach. Działo i moździerz tylko góra–dół.','WASD','Strzałki'],
     ['A','Krótko = strzał na wprost, trzymaj = skos do 45° (drążek góra–dół), puść = strzał · Ckm: trzymaj = seria, drążek sieje na boki · Czołg: trzymaj = kierunek, drugie A = odległość · Moździerz: trzymaj = siła','F / Spacja','Enter / K'],
-    ['RT','Piechota: granat · Czołg: karabin maszynowy · Moździerz: odłamkowy / dymny','V','M'],['X / Y / B','Piechota, ckm, rusznica / czołg / działo i moździerz','R/T/G','J/I/L'],['LB / RB','Poprzedni / następny oddział','Q / E','U / O'],['Start / drążek','Rozstawienie: gotowi · w bitwie: pauza','Esc / 1','Backspace / 0'],
+    ['RT','Piechota: trzymaj = granat (drążek: kierunek, pasek: odległość), 4–6 ludzi rzuca dwa · Czołg: km (przegrzewa się) · Moździerz: odłamkowy / dymny','V','M'],
+    ['Krzyżak ↓ / ↑','Piechota: padnij (kryją się, po chwili okopują, drążek = czołganie) / wstań. Leżących nie rozjedzie czołg, kule rzadko trafiają.','3 / 2','; / P'],['X / Y / B','Piechota, ckm, rusznica / czołg / działo i moździerz','R/T/G','J/I/L'],['LB / RB','Poprzedni / następny oddział','Q / E','U / O'],['Start / drążek','Rozstawienie: gotowi · w bitwie: pauza','Esc / 1','Backspace / 0'],
     ['LT','Nalot: samolot leci na wysokości wybranego oddziału i bombarduje połowę wroga. Ckm może go zestrzelić.','L. Shift','P. Shift'],
     ['Samoobrona','Oddziały bez sterowania same bronią się ogniem do 75% zasięgu (bez moździerza i działa).','','']],
    pl17:[['Lewy drążek','Husaria stoi: góra–dół i powoli naprzód, bez cofania. W szarży: góra–dół, w tył = stój. Pikinierzy: A = piki w dół (stoją: na sztorc, idą: natarcie). Rajtaria: każdy kierunek.','WASD','Strzałki'],
@@ -71,8 +72,10 @@ function drawHelp(){panel(40,40,W-80,H-80,BRASS);const pg=G.helpPage||0;
     ['Y','Postawa oddziału: Trzymaj / Naprzód','T','I'],['LB / RB','Poprzedni / następny oddział','Q / E','U / O'],['B','Zryw: morale +40 w promieniu (co 40 s)','G','L'],
     ['Krzyżak ↑ / ↓','Cała armia: Naprzód / Trzymaj','2 / 3','P / ;'],['LT','Pokaż zasięgi i morale','L. Shift','P. Shift'],['Start / drążek','Gotowi (rozstawienie) · pauza','Esc / 1','Backspace / 0']];
   txt('PAD XBOX',70,118,17,BRASS);txt('AKCJA',230,118,17,BRASS);txt('GRACZ 1',690,118,17,SIDE[0].ui);txt('GRACZ 2',800,118,17,SIDE[1].ui);
-  let y=144;for(const r of rows){txt(r[0],70,y,19,INK);const ey=wrap(r[1],230,y,440,16,17,'#cfc6a8');txt(r[2],690,y,17,DIM);txt(r[3],800,y,17,DIM);y=Math.max(y+28,ey+22);}
-  if(pg===0)wrap('Sterujesz jednym oddziałem naraz, pozostałe stoją. Rzekę przejdziesz tylko brodem lub mostem – w głębinie żołnierze toną. Kula armatnia robi dziurę w moście.',70,y+6,820,18,17,BRASS);
+  // dużo wierszy (np. 1939) – mniejsze pismo i ciaśniej, żeby zmieścić się na stronie
+  const tight=rows.length>8,fs=tight?15:17,lh=tight?14:16,gap=tight?17:22;
+  let y=144;for(const r of rows){txt(r[0],70,y,tight?17:19,INK);const ey=wrap(r[1],230,y,440,lh,fs,'#cfc6a8');txt(r[2],690,y,fs,DIM);txt(r[3],800,y,fs,DIM);y=Math.max(y+(tight?22:28),ey+gap);}
+  if(pg===0&&y<H-110)wrap('Sterujesz jednym oddziałem naraz, pozostałe stoją. Rzekę przejdziesz tylko brodem lub mostem – w głębinie żołnierze toną. Kula armatnia robi dziurę w moście.',70,y+6,820,18,17,BRASS);
   txt('◀ ▶ kolejna strona · A / B – wróć',W/2,H-52,18,BRASS,'center');}
 function armyAdjust(a,type,d,p){const sum=sumArmy(a,p);
   if(d<0){if(a[type]>0)a[type]--;else return AU.bad();}

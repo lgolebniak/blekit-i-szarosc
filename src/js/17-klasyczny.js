@@ -86,7 +86,7 @@ function updBullets(dt){
           if(e.key==='leg'&&e.rf==='testudo'&&isFront(e,b.x-b.vx)){
             if(b.kind==='pilum'){kill=true;if(R()<.5){e.rf='line';e.formT=.8;msg(e.side,`${unitName(e)}: pilum rozbija żółwia!`);}break;}
             if(R()>.1){kill=true;dustAt(b.x,b.y-6,1,'200,190,160');break;}}
-          let p=(b.pk||.85)*Math.min(1,TCOVER[tAt(m.x,m.y)])*(smokeAt(b.x,b.y)>2?.8:1)*(e.supT>0?.5:1)*eff(b.src,e.key)*evade(e,m);
+          let p=(b.pk||.85)*(e.prone?(e.dug?.2:.35):1)*Math.min(1,TCOVER[tAt(m.x,m.y)])*(smokeAt(b.x,b.y)>2?.8:1)*(e.supT>0?.5:1)*eff(b.src,e.key)*evade(e,m);
           if(b.boom){kill=true;break;}
           if(R()<p){killMan(e,m,'shot');G.stats[b.side].hits++;if(b.pierce>1){b.pierce--;(b.hit||(b.hit=new Set())).add(m);continue;}}
           kill=true;break;}}
@@ -97,7 +97,7 @@ const _updBullets1=updBullets;updBullets=function(dt){const n=Math.max(1,Math.ce
 let clMeleeT=0;
 function clStrike(a,b,m,o,d){
   if(b.type==='tank')return 0;
-  if(a.type==='tank')return a.moving&&d<8?.14:0;
+  if(a.type==='tank')return a.moving&&d<8&&!b.prone?.14:0;
   if(a.type==='ele')return a.chargeT>0||a.panicT>0?.5:.15;
   let p=0;
   if(a.type==='cav'){
@@ -203,6 +203,7 @@ function clPlayer(p){const c=input.ctl[p];
   if(c.p.lb||c.p.left)clCycle(p,-1);if(c.p.rb||c.p.right)clCycle(p,1);
   if(c.p.x)clPick(p,'x');if(c.p.y)clPick(p,'y');if(c.p.b)clPick(p,'b');
   if(c.p.lt&&G.state==='battle'&&FAC[p].air){const u=clSel(p);callAir(p,u?u.y:H/2);}
+  if((c.p.down||c.p.up)&&G.state==='battle'){const u=clSel(p);if(u&&kdOf(u).prone)setProne(u,!!c.p.down);}
   if(c.p.start&&G.state==='battle'){G.state='pause';G.pauseSel=0;AU.ui();}
   else if(c.p.start&&G.state==='deploy'){G.ready[p]=!G.ready[p];AU.ok2();}}
 /* --- komputer: steruje JEDNYM oddziałem naraz, z opóźnieniem reakcji --- */
@@ -233,7 +234,7 @@ function cpuClassic(u,dt){const c=G.cpu;const idle={x:0,y:0,A:false};if(c.react>
     const[best,bdx]=alignPair(u,t,dir);
     let iy=0,ix=0;if(Math.abs(best)<200){if(Math.abs(best)>1.5)iy=clamp(best/6,-1,1);}else iy=clamp((t.y-u.y)/14,-1,1);
     const dx=Math.abs(t.x-u.x);const fire=Math.abs(best)<3&&bdx<rg&&u.reload<=0&&!c.lastA;c.lastA=fire;
-    const gren=kd.gren&&u.cd2<=0&&((dx<85&&Math.abs(t.y-u.y)<25)||foes.some(f=>f.type==='tank'&&!f.track&&(f.x-u.x)*dir>0&&Math.abs(f.x-u.x)<85&&Math.abs(f.y-u.y)<20));
+    const gren=false;if(kd.gren)cpuGren(u,foes,dir);if(kd.prone){const tk=foes.some(f=>f.type==='tank'&&dist(f.x,f.y,u.x,u.y)<220);if(tk&&!u.prone)setProne(u,true);else if(!tk&&u.prone&&u.supT<=0)setProne(u,false);}
     const blocked=passF('inf',u.x+dir*22,u.y)<=0||tAt(u.x+dir*22,u.y)===T.WATER;
     if(t.type!=='cav'&&(dx>rg*.85||(blocked&&dx>70))){const v=steer(u,t.x-dir*150,t.y,dt);return{x:v[0],y:v[1],A:fire,R:gren};}
     if(t.type!=='cav'&&Math.abs(iy)<.5&&dx<90&&!kd.gren)ix=-dir*.6;
@@ -290,7 +291,7 @@ function clGround(){if(G.state==='deploy'){ctx.globalAlpha=.13;ctx.fillStyle=SID
   if(u.type==='art'||u.type==='tank'||u.type==='ele'){y0=Math.min(y0,u.y);y1=Math.max(y1,u.y);}
   if(x0>1e8||y0>1e8)continue;ctx.save();ctx.strokeStyle=S.ui;ctx.globalAlpha=hum?.55+.35*Math.sin(G.t*6):.4;ctx.setLineDash(hum?[3,3]:[1,4]);
   ctx.beginPath();ctx.ellipse((x0+x1)/2,(y0+y1)/2,Math.max(4,(x1-x0)/2+12),Math.max(4,(y1-y0)/2+8),0,0,TAU);ctx.stroke();ctx.setLineDash([]);
-  if(hum&&(u.coneOn||u.tAim))coneLines(u,S);
+  if(hum&&(u.coneOn||u.tAim||u.gAim))coneLines(u,S);
   if(kd.ai==='flat'&&hum&&u.reload<=0&&!u.coneOn){const rg=kd.range||CLS.inf.range;ctx.globalAlpha=.18;ctx.fillStyle=S.ui;const dir=clDir(p);for(const m of u.men)if(m.alive)ctx.fillRect(Math.round(dir>0?m.x+8:m.x-8-rg),Math.round(m.y),rg,1);}
   if(u.key==='mg'&&hum&&u.firing){const g=u.men.find(m=>m.alive);if(g){const dir=clDir(p);ctx.globalAlpha=.25;ctx.strokeStyle=S.ui;ctx.beginPath();ctx.moveTo(g.x+dir*8,g.y);ctx.lineTo(g.x+dir*380,g.y+u.mgY);ctx.stroke();}}
   ctx.restore();}}
@@ -320,7 +321,7 @@ function clPanel(p){const u=clSel(p),S=SIDE[p],w=280,h=58,x=p===0?8:W-8-w,y=H-h-
   txt(st,x+8,y+50,16,'#cfc6a8');
   const rmax=u.reloadMax||(u.type==='art'?(u.reloadBase||SPEC.art.reload)*1.9:CLS.inf.reload*1.4);
   if(u.reload>0&&u.type!=='cav')bar(x+206,y+28,64,5,1-u.reload/rmax,'#d0a050');
-  if(u.key==='mg')bar(x+206,y+38,64,4,u.heat||0,u.over?'#e05a4a':'#e0a060');}
+  if(u.key==='mg'||u.key==='tank')bar(x+206,y+38,64,4,u.heat||0,u.over?'#e05a4a':'#e0a060');}
 function clHUD(){ctx.fillStyle='rgba(10,12,10,.8)';ctx.fillRect(0,0,W,26);ctx.fillStyle='#6a5a30';ctx.fillRect(0,26,W,1);
   for(let p=0;p<2;p++){const S=SIDE[p],r=G.res[p],sp=TY(p).length>4?36:42;let x=p===0?10:W-10;
     txt(S.name.toUpperCase(),x,18,18,S.ui,p===0?'left':'right');const nw=Math.max(104,Math.ceil(ctx.measureText(S.name.toUpperCase()).width)+14);x+=p===0?nw:-nw;

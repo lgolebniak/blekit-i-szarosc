@@ -24,8 +24,18 @@ function snapDeploy(){for(const u of units){if(u.state!=='enter')continue;
 function nearestAlignedMan(u,shooters,rg,filter,tol){const dir=clDir(u.side);
   for(const e of units){if(e.side===u.side||e.dead||e.gone||e.state==='enter'||(filter&&!filter(e)))continue;if(Math.abs(e.x-u.x)>rg+60)continue;
     for(const m of shooters){for(const o of e.men){if(!o.alive)continue;const dx=(o.x-m.x)*dir;if(dx>4&&dx<rg&&Math.abs(o.y-m.y)<tol)return[e,o,m];}}}return null;}
+// granat komputera i samoobrony: w czołg 30–110 kroków przed oddziałem albo w zbitą piechotę 50–110 kroków
+function cpuGren(u,foes,dir){if(u.cd2>0||!(u.gren>0))return false;let best=null;
+  for(const f of foes){if(f.dead||f.gone||f.state==='enter')continue;const dx=(f.x-u.x)*dir,dy=f.y-u.y;if(dx<30||dx>110||Math.abs(dy)>dx)continue;
+    const s=f.type==='tank'?100:f.type==='inf'&&f.n>=4&&dx>50?40:0;if(s&&(!best||s>best.s))best={s,dx,dy};}
+  if(!best)return false;return throwGren(u,Math.min(GREN.max,Math.hypot(best.dx,best.dy)),clamp(Math.atan2(best.dy,best.dx),-CONE,CONE));}
 const AUTO={
-  rif(u,dt){if(u.reload>0)return;const rg=230*AUTO_RANGE,al=u.men.filter(m=>m.alive);
+  rif(u,dt){// samoobrona: padnij przed czołgiem i pod ogniem, granat w czołg tuż przed oddziałem
+    if(kdOf(u).prone){const tk=units.some(e=>e.side!==u.side&&e.type==='tank'&&!e.dead&&!e.gone&&dist(e.x,e.y,u.x,u.y)<200);
+      if((tk||u.supT>0)&&!u.prone){setProne(u,true);u.autoProne=true;u.calmT=0;}
+      else if(u.prone&&u.autoProne&&!tk&&u.supT<=0){u.calmT=(u.calmT||0)+dt;if(u.calmT>5){setProne(u,false);u.autoProne=false;}}else u.calmT=0;}
+    cpuGren(u,units.filter(e=>e.side!==u.side&&e.type==='tank'),clDir(u.side));
+    if(u.reload>0)return;const rg=230*AUTO_RANGE,al=u.men.filter(m=>m.alive);
     if(nearestAlignedMan(u,al,rg,e=>e.type!=='tank',3.5))clVolley(u,{reload:1.7,range:rg,spd:420,pk:.7,kind:'rifle'});},
   ppk(u,dt){if(u.reload>0)return;const g=u.men.find(m=>m.alive);if(!g)return;const rg=420*AUTO_RANGE,dir=clDir(u.side);
     for(const e of units){if(e.side===u.side||e.dead||e.gone||e.type!=='tank')continue;const dx=(e.x-g.x)*dir;

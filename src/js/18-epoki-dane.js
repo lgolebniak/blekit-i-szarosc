@@ -23,8 +23,8 @@ const KD={
   ona:{base:'art',men:3,name:'Onager',unit:'Onager',pick:'b',pos:[44,370],ai:'artArc',beh:'acwCannon',label:'Obsługa',
     init:u=>{u.fixedElev=60;u.minR=150;u.maxR=620;u.reloadBase=8.5;u.noPowder=true;u.projKind='stone';u.aimSpd=310;}},
   // --- Wrzesień 1939 ---
-  rif:{base:'inf',men:6,name:'Piechota',unit:'Pluton',pick:'x',pos:[165,270],ai:'flat',beh:'rif',label:'Żołnierze',range:230,gren:true,init:u=>{u.reloadMax=1.7;},
-    status:u=>`${u.supT>0?'PRZYGWOŻDŻENI · ':''}${u.coneOn?'SKOS – drążek góra–dół, puść A':u.reload>0?'Przeładowanie':'A: ogień · trzymaj = skos'} · RT: granat${u.cd2>0?` (${Math.ceil(u.cd2)} s)`:''}`},
+  rif:{base:'inf',men:6,name:'Piechota',unit:'Pluton',pick:'x',pos:[165,270],ai:'flat',beh:'rif',label:'Żołnierze',range:230,gren:true,prone:true,init:u=>{u.reloadMax=1.7;u.gren=GREN.n;},
+    status:u=>`${u.gAim?`GRANAT ${Math.round(u.gR)} kroków – drążek: kierunek, puść RT`:`${u.prone?(u.dug?'OKOPANI · ':'LEŻĄ · '):''}${u.supT>0?'PRZYGWOŻDŻENI · ':''}${u.coneOn?'SKOS – puść A':u.reload>0?'Przeładowanie':'A: ogień'} · RT: granat ×${u.gren}${u.cd2>0?` (${Math.ceil(u.cd2)} s)`:''} · ${u.prone?'↑ wstań':'↓ padnij'}`}`},
   mg:{base:'inf',men:3,name:'Ckm',unit:'Drużyna ckm',pick:'x',pos:[110,150],ai:'mg',beh:'mg',label:'Obsługa',slots:mgSlots,init:u=>{u.mgY=0;u.heat=0;},
     status:u=>u.over?'Lufa przegrzana – czekaj':u.firing?'SERIA – drążek sieje na boki':'Trzymaj A = seria'},
   tank:{base:'tank',men:1,name:'Czołg',unit:'Czołg',pick:'y',pos:[84,400],ai:'tank',beh:'tank',label:'Pancerz',init:u=>{u.reloadMax=3.2;u.track=false;},
