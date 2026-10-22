@@ -20,7 +20,7 @@ const {chromium}=require(process.env.PW||'playwright');
     // padnij: km czołgu przez 4 s do stojących i do leżących, potem przejazd przez leżących
     const kmTest=prone=>{fresh();const q=clSpawn(0,'rif'),t=clSpawn(1,'tank');snapDeploy();mv(q,500,270);mv(t,700,q.men[2].y);t.hd=Math.PI;if(prone){setProne(q,true);q.formT=0;}
       const n0=q.men.filter(m=>m.alive).length;let k=0;for(let i=0;i<30;i++){t.heat=0;t.over=false;tick(1,{[t.id]:{x:0,y:0,A:false,R:true,human:true},[q.id]:{x:0,y:0,A:false,human:true}});}return n0-q.men.filter(m=>m.alive).length;};
-    let st=0,le=0;for(let i=0;i<20;i++){st+=kmTest(false);le+=kmTest(true);}out.kmStojacy=st;out.kmLezacy=le;
+    let st=0,le=0;for(let i=0;i<40;i++){st+=kmTest(false);le+=kmTest(true);}out.kmStojacy=st;out.kmLezacy=le;
     fresh();const q=clSpawn(0,'rif'),t=clSpawn(1,'tank');snapDeploy();mv(q,500,270);mv(t,560,270);t.hd=Math.PI;setProne(q,true);q.cd2=99;q.gren=0;
     const n0=q.men.filter(m=>m.alive).length;tick(90,{[t.id]:{x:-1,y:0,A:false,human:true}});out.rozjechaniLezacy=n0-q.men.filter(m=>m.alive).length;
     // przegrzanie km czołgu
@@ -28,5 +28,5 @@ const {chromium}=require(process.env.PW||'playwright');
     return out;});
   console.log(JSON.stringify(r));
   const ok=r.celujeGranatem&&r.granatyLeca===2&&r.zostalo===3&&r.katGranatu>10&&r.granatyPrzy2Ludziach===1&&r.czolgPoGranatach.slice(0,3).join()==='zwalnia,unieruchomiony,zniszczony'
-    &&r.kmLezacy<r.kmStojacy&&r.rozjechaniLezacy===0&&r.kmPrzegrzany&&!errs.length;
+    &&r.kmLezacy<r.kmStojacy*.7&&r.rozjechaniLezacy===0&&r.kmPrzegrzany&&!errs.length;
   console.log(errs.join('\n')||'bez błędów strony');await b.close();if(!ok){console.error('TEST PIECHOTY NIEUDANY');process.exit(1);}console.log('Piechota OK');})();
