@@ -6,7 +6,7 @@ const UCLASS={inf:'inf',cav:'cav',lan:'lan',art:'art',
 // kto jest skuteczniejszy od kogo (każda jednostka ma tyle samo przewag co słabości)
 const BEATS={
   cav:['inf'],inf:['art'],art:['lan'],lan:['cav'],
-  heavy:['rcav','missile'],rcav:['missile','flat'],missile:['flat','arcm','beast'],flat:['arcm','heavy','beast'],arcm:['heavy','rcav'],beast:['heavy','rcav'],
+  heavy:['rcav','missile'],rcav:['missile','flat'],missile:['flat','arcm'],flat:['arcm','beast'],arcm:['heavy','rcav'],beast:['heavy'],
   rif:['at','mor'],mg:['rif','ppk'],ppk:['tank','mor'],tank:['rif','mg'],at:['ppk','tank'],mor:['mg','at']};
 const EFF_UP=1.35,EFF_DN=1/1.35;
 function eff(a,b){if(!a||!b||G.rules!=='classic')return 1;const ca=UCLASS[a],cb=UCLASS[b];if(!ca||!cb||ca===cb)return 1;

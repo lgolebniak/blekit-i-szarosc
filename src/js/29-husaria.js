@@ -201,7 +201,7 @@ autoDefend=function(u,dt){if(G.era!=='pl17')return _autoDefPL(u,dt);if(G.state!=
   if(u.key==='pik'&&u.rf==='line'&&u.formT<=0&&units.some(e=>e.side!==u.side&&!e.dead&&!e.gone&&e.type==='cav'&&e.state==='ride'&&dist(e.x,e.y,u.x,u.y)<150)){u.rf='phalanx';u.formT=.8;}};
 
 /* --- komputer --- */
-CPUSCORE.tank=u=>u.track||u.shots===0?12:50;
+CPUSCORE.tank=u=>u.shots===0||u.resup?45:u.track?12:50;
 Object.assign(CPUSCORE,{hus:u=>u.state==='ride'?(cavAvoid(u)?72:50):(G.t<8?12:46),skirm:()=>44});
 CPU.hus=function(u,dt,foes,dir,c){const al=u.men.filter(m=>m.alive),armed=al.filter(m=>m.kopia).length;
   const soft=foes.filter(f=>!(f.key==='pik'&&f.rf==='phalanx'));const t=bestTarget(u,soft.length?soft:foes)||nearestBy(foes,u);

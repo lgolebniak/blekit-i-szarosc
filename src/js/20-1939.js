@@ -9,7 +9,7 @@ function coneLines(u,S){ctx.save();ctx.strokeStyle=S.ui;ctx.lineWidth=1;
   const ray=(x,y,a,L,al)=>{const[vx,vy]=coneVec(u,a);ctx.globalAlpha=al;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+vx*L,y+vy*L);ctx.stroke();};
   if(u.type==='tank'){const L=u.tAim===3?u.aimR:u.aimMax;ray(u.x,u.y,-CONE,70,.3);ray(u.x,u.y,CONE,70,.3);ctx.setLineDash([3,3]);ray(u.x,u.y,u.aimA,L,.85);
     if(u.tAim===3){const[vx,vy]=coneVec(u,u.aimA);ctx.setLineDash([]);ctx.beginPath();ctx.arc(u.x+vx*L,u.y+vy*L,9,0,TAU);ctx.stroke();}}
-  else{ctx.setLineDash([2,3]);if(u.type==='art')ray(u.x,u.y,u.aimA,320,.6);else for(const m of u.men)if(m.alive)ray(m.x,m.y,u.aimA,u.key==='ppk'?300:230,.4);}
+  else{ctx.setLineDash([2,3]);if(u.type==='art')ray(u.x,u.y,u.aimA,artMaxRange(u),.6);else for(const m of u.men)if(m.alive)ray(m.x,m.y,u.aimA,u.key==='ppk'?420:230,.4);}
   ctx.restore();}
 BEH.rif=function(u,dt,I){const{x,y}=I,sp=26*(G.weather==='rain'?.9:1)*(u.supT>0?.4:1),a=coneFire(u,I,dt);
   if(I.A&&I.bat)clMoveMen(u,0,0,dt,false,1,I.hum);
@@ -46,11 +46,6 @@ function grenImpact(p){blast(p.tx,p.ty,14,.75,p.side,p.src);
   for(const e of units){if(e.type!=='tank'||e.dead||e.gone)continue;if(dist(p.tx,p.ty,e.x,e.y)<14&&!e.track&&R()<.6){e.track=true;msg(e.side,`${unitName(e)}: granat zerwał gąsienicę!`);}}}
 function smokeCloud(x,y){for(let i=0;i<24;i++)parts.push({k:'smoke',x:x+(R()-.5)*40,y:y+(R()-.5)*30,vx:G.wind.x*4+(R()-.5)*3,vy:G.wind.y*4+(R()-.5)*3,r:6+R()*5,g:6,life:0,max:9+R()*3,a:.7});
   const tx=Math.floor(x/TS),ty=Math.floor(y/TS);for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const X=tx+dx,Y=ty+dy;if(X>=0&&Y>=0&&X<GW&&Y<GH)smokeG[Y*GW+X]+=7;}AU.burst(.5,400,'lowpass',1,.3,AU.pan(x));}
-function tankHit(e,ap,side,fromX){if(e.dead)return;const eff=isFront(e,fromX)?ap:Math.min(.95,ap*2.2);
-  parts.push({k:'flash',x:e.x,y:e.y-8,life:0,max:.1,big:1});AU.impact(e.x);G.shake=Math.max(G.shake,2);
-  if(R()<eff){const m=e.men.find(q=>q.alive);if(m){killMan(e,m,'boom');G.stats[side].hits++;}}
-  else if(!e.track&&R()<.35){e.track=true;msg(e.side,`${unitName(e)}: gąsienica zerwana!`);}
-  else{for(let i=0;i<6;i++)parts.push({k:'spark',x:e.x,y:e.y-8,vx:(R()-.5)*60,vy:-R()*40,life:0,max:.3});AU.tone(1400,.08,'square',.05);}}
 function tankDestroy(e,m,kind){m.alive=false;G.stats[e.side].lost++;e.hitFlash=.3;const x=e.x,y=e.y;
   if(kind==='drown'){for(let i=0;i<16;i++)parts.push({k:'dirt',x,y,z:0,vx:(R()-.5)*40,vy:(R()-.5)*14,vz:50+R()*60,life:0,max:.9,c:'#d8ecf4'});AU.impact(x,true);msg(e.side,`${unitName(e)} zatonął.`);return;}
   for(let i=0;i<20;i++)parts.push({k:'dirt',x,y,z:4,vx:(R()-.5)*80,vy:(R()-.5)*50,vz:60+R()*90,life:0,max:1.1,c:R()<.5?'#2a2a26':'#ff9a40'});

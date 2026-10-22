@@ -1111,7 +1111,8 @@ function clStrike(a,b,m,o,d){
   if(a.type==='cav'){
     if(a.slashT>0)p=b.type==='cav'?(b.slashT>0?.22:.4):.45;
     else if(a.lance&&a.state==='ride'&&(o.x-m.x)*clDir(a.side)>-2)p=a.gallop?.32:.1;
-    else if(a.gallop&&b.type!=='cav'&&d<6)p=.07;}
+    else if(a.gallop&&b.type!=='cav'&&d<6)p=.07;
+    else if(a.key==='num')p=.03;}
   else if(a.key==='leg'||a.key==='lib')p=({line:.06,wedge:.1,testudo:.012,orbis:.05,phalanx:.05}[a.rf]||.06)*(a.rf==='wedge'&&b.rf==='line'?1.3:1);
   else if(a.key==='war')p=.06*(a.furyT>0?2:a.tiredT>0?.6:1);
   else if(a.type==='inf')p=a.key==='arc'||a.key==='mg'?.015:b.type==='cav'?.035:b.type==='art'?.06:.025;
@@ -1217,7 +1218,7 @@ function nearestBy(list,u){let b=null,bd=1e9;for(const f of list){const d=dist(u
 function cpuScore(u,foes){const ai=kdOf(u).ai;
   if(ai==='flat'){let s=40;const rc=foes.find(f=>f.type==='cav'&&f.state==='ride');if(rc&&Math.abs(rc.x-u.x)<320)s+=70;return s;}
   if(ai==='cav'||ai==='lance'){if(u.state==='ride'&&foes.some(f=>f.men.some(o=>o.alive&&Math.abs(o.x-u.x)<40&&Math.abs(o.y-u.y)<30)))return 85;let s=u.state==='ride'?(cavAvoid(u)?72:48):(foes.some(f=>f.type==='art')?52:28);if(G.t<10&&u.state!=='ride')s-=40;return s;}
-  if(ai==='artArc'||ai==='artFlat'){const mr=artMaxRange(u),mn=u.minR||SPEC.art.min;const ok=foes.some(f=>Math.abs(f.x-u.x)<mr-10&&Math.abs(f.x-u.x)>mn+10);return ok&&u.reload<=0&&u.shots!==0?58:4;}
+  if(ai==='artArc'||ai==='artFlat'){const mr=artMaxRange(u),mn=ai==='artFlat'?10:u.minR||SPEC.art.min;const ok=foes.some(f=>Math.abs(f.x-u.x)<mr-10&&Math.abs(f.x-u.x)>mn+10);return ok&&u.reload<=0&&u.shots!==0?58:4;}
   return CPUSCORE[ai]?CPUSCORE[ai](u,foes):40;}
 function cpuPick(dt){const c=G.cpu;c.t-=dt;c.hold-=dt;const cur=clSel(1),live=cur&&cur.state!=='enter';
   if(live&&c.hold>0)return;if(live&&c.t>0)return;c.t=.4;
@@ -1226,7 +1227,7 @@ function cpuPick(dt){const c=G.cpu;c.t-=dt;c.hold-=dt;const cur=clSel(1),live=cu
   let best=null,bs=-1e9;
   for(const u of mine){let s=cpuScore(u,foes);
     const thr=foes.find(f=>(f.type==='cav'&&f.state==='ride'||f.type==='ele'||f.furyT>0)&&dist(f.x,f.y,u.x,u.y)<220&&eff(u.key,f.key)>=1);if(thr&&(u.type==='inf'||u.type==='art'))s+=45;
-    if(u.pendVol||u.aiming)s+=30;s+=R()*18;if(cur&&u.id===cur.id)s+=10;if(s>bs){bs=s;best=u;}}
+    if(u.pendVol||u.aiming||u.tAim||u.aHold>0)s+=30;s+=R()*18;if(cur&&u.id===cur.id)s+=10;if(s>bs){bs=s;best=u;}}
   if(best&&(!cur||best.id!==cur.id)){G.csel[1]=best.id;c.react=.22+R()*.25;c.lastA=false;}
   c.hold=best&&best.type==='cav'?3.5:1.6+R()*1.4;}
 function alignPair(u,t,dir){const menOf=f=>f.men.filter(m=>m.alive);let best=1e9,bdx=1e9;
@@ -1240,7 +1241,7 @@ function cpuClassic(u,dt){const c=G.cpu;const idle={x:0,y:0,A:false};if(c.react>
     const[best,bdx]=alignPair(u,t,dir);
     let iy=0,ix=0;if(Math.abs(best)<200){if(Math.abs(best)>1.5)iy=clamp(best/6,-1,1);}else iy=clamp((t.y-u.y)/14,-1,1);
     const dx=Math.abs(t.x-u.x);const fire=Math.abs(best)<3&&bdx<rg&&u.reload<=0&&!c.lastA;c.lastA=fire;
-    const gren=kd.gren&&u.cd2<=0&&dx<85&&Math.abs(t.y-u.y)<25;
+    const gren=kd.gren&&u.cd2<=0&&((dx<85&&Math.abs(t.y-u.y)<25)||foes.some(f=>f.type==='tank'&&!f.track&&(f.x-u.x)*dir>0&&Math.abs(f.x-u.x)<85&&Math.abs(f.y-u.y)<20));
     const blocked=passF('inf',u.x+dir*22,u.y)<=0||tAt(u.x+dir*22,u.y)===T.WATER;
     if(t.type!=='cav'&&(dx>rg*.85||(blocked&&dx>70))){const v=steer(u,t.x-dir*150,t.y,dt);return{x:v[0],y:v[1],A:fire,R:gren};}
     if(t.type!=='cav'&&Math.abs(iy)<.5&&dx<90&&!kd.gren)ix=-dir*.6;
@@ -1414,7 +1415,7 @@ BEH.leg=function(u,dt,I){const{x,y}=I,sp={line:22,testudo:11,wedge:28,orbis:0}[u
   if(I.Ap){const o=['line','testudo','wedge','orbis'];u.rf=o[(o.indexOf(u.rf)+1)%4];u.formT=.8;AU.ui();}
   if(I.Rp&&I.bat){if(u.cd2>0||u.rf==='testudo'||u.rf==='orbis'){if(I.hum)AU.bad();}
     else{const sv=u.reload;u.reload=0;clVolley(u,{reload:.01,range:95,spd:170,pk:.7,kind:'pilum',noPowder:true});u.reload=sv;u.cd2=5;}}};
-BEH.arc=function(u,dt,I){const{x,y,A}=I;
+BEH.arc=function(u,dt,I){const{x,y,A}=I;if(!I.inp){u.aHold=0;u.aiming=false;}
   if(!u.aiming){const sp=24*(G.weather==='rain'?.9:1),horiz=Math.abs(x)>.3&&Math.abs(x)>=Math.abs(y),vert=Math.abs(y)>.3&&Math.abs(y)>Math.abs(x);
     if(horiz){u.s=Math.min(1,u.s+dt*.7);u.colDir=Math.sign(x);}else if(vert)u.s=Math.max(0,u.s-dt*1.1);
     clMoveMen(u,x*sp,y*sp,dt,false,vert?2.2:horiz?1.2:0,I.hum);}
@@ -1454,7 +1455,7 @@ function coneLines(u,S){ctx.save();ctx.strokeStyle=S.ui;ctx.lineWidth=1;
   const ray=(x,y,a,L,al)=>{const[vx,vy]=coneVec(u,a);ctx.globalAlpha=al;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+vx*L,y+vy*L);ctx.stroke();};
   if(u.type==='tank'){const L=u.tAim===3?u.aimR:u.aimMax;ray(u.x,u.y,-CONE,70,.3);ray(u.x,u.y,CONE,70,.3);ctx.setLineDash([3,3]);ray(u.x,u.y,u.aimA,L,.85);
     if(u.tAim===3){const[vx,vy]=coneVec(u,u.aimA);ctx.setLineDash([]);ctx.beginPath();ctx.arc(u.x+vx*L,u.y+vy*L,9,0,TAU);ctx.stroke();}}
-  else{ctx.setLineDash([2,3]);if(u.type==='art')ray(u.x,u.y,u.aimA,320,.6);else for(const m of u.men)if(m.alive)ray(m.x,m.y,u.aimA,u.key==='ppk'?300:230,.4);}
+  else{ctx.setLineDash([2,3]);if(u.type==='art')ray(u.x,u.y,u.aimA,artMaxRange(u),.6);else for(const m of u.men)if(m.alive)ray(m.x,m.y,u.aimA,u.key==='ppk'?420:230,.4);}
   ctx.restore();}
 BEH.rif=function(u,dt,I){const{x,y}=I,sp=26*(G.weather==='rain'?.9:1)*(u.supT>0?.4:1),a=coneFire(u,I,dt);
   if(I.A&&I.bat)clMoveMen(u,0,0,dt,false,1,I.hum);
@@ -1491,11 +1492,6 @@ function grenImpact(p){blast(p.tx,p.ty,14,.75,p.side,p.src);
   for(const e of units){if(e.type!=='tank'||e.dead||e.gone)continue;if(dist(p.tx,p.ty,e.x,e.y)<14&&!e.track&&R()<.6){e.track=true;msg(e.side,`${unitName(e)}: granat zerwał gąsienicę!`);}}}
 function smokeCloud(x,y){for(let i=0;i<24;i++)parts.push({k:'smoke',x:x+(R()-.5)*40,y:y+(R()-.5)*30,vx:G.wind.x*4+(R()-.5)*3,vy:G.wind.y*4+(R()-.5)*3,r:6+R()*5,g:6,life:0,max:9+R()*3,a:.7});
   const tx=Math.floor(x/TS),ty=Math.floor(y/TS);for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const X=tx+dx,Y=ty+dy;if(X>=0&&Y>=0&&X<GW&&Y<GH)smokeG[Y*GW+X]+=7;}AU.burst(.5,400,'lowpass',1,.3,AU.pan(x));}
-function tankHit(e,ap,side,fromX){if(e.dead)return;const eff=isFront(e,fromX)?ap:Math.min(.95,ap*2.2);
-  parts.push({k:'flash',x:e.x,y:e.y-8,life:0,max:.1,big:1});AU.impact(e.x);G.shake=Math.max(G.shake,2);
-  if(R()<eff){const m=e.men.find(q=>q.alive);if(m){killMan(e,m,'boom');G.stats[side].hits++;}}
-  else if(!e.track&&R()<.35){e.track=true;msg(e.side,`${unitName(e)}: gąsienica zerwana!`);}
-  else{for(let i=0;i<6;i++)parts.push({k:'spark',x:e.x,y:e.y-8,vx:(R()-.5)*60,vy:-R()*40,life:0,max:.3});AU.tone(1400,.08,'square',.05);}}
 function tankDestroy(e,m,kind){m.alive=false;G.stats[e.side].lost++;e.hitFlash=.3;const x=e.x,y=e.y;
   if(kind==='drown'){for(let i=0;i<16;i++)parts.push({k:'dirt',x,y,z:0,vx:(R()-.5)*40,vy:(R()-.5)*14,vz:50+R()*60,life:0,max:.9,c:'#d8ecf4'});AU.impact(x,true);msg(e.side,`${unitName(e)} zatonął.`);return;}
   for(let i=0;i<20;i++)parts.push({k:'dirt',x,y,z:4,vx:(R()-.5)*80,vy:(R()-.5)*50,vz:60+R()*90,life:0,max:1.1,c:R()<.5?'#2a2a26':'#ff9a40'});
@@ -1511,7 +1507,7 @@ function eraTick(dt){if(!G.fires)return;for(let i=G.fires.length-1;i>=0;i--){con
 const CPUSCORE={leg:()=>45,arc:(u,f)=>f.some(e=>Math.abs(e.x-u.x)<380)&&u.reload<=0?52:30,mg:()=>44,tank:()=>50};
 const CPU={
   leg(u,dt,foes,dir,c){const t=nearestBy(foes.filter(f=>f.type==='inf'),u)||nearestBy(foes,u),dx=Math.abs(t.x-u.x),dy=t.y-u.y;
-    const ranged=foes.some(f=>(f.key==='arc'||f.key==='bal')&&Math.abs(f.x-u.x)<420),cavNear=foes.find(f=>f.type==='cav'&&f.state==='ride'&&dist(f.x,f.y,u.x,u.y)<180);
+    const ranged=foes.some(f=>(UCLASS[f.key]==='missile'||f.key==='bal')&&Math.abs(f.x-u.x)<420),cavNear=foes.find(f=>f.type==='cav'&&f.state==='ride'&&dist(f.x,f.y,u.x,u.y)<180);
     const want=cavNear?'orbis':dx<110?'wedge':ranged?'testudo':'line';
     if(want!==u.rf){const A=!c.lastA;c.lastA=A;return{x:0,y:0,A};}c.lastA=false;
     if(want==='orbis')return{x:0,y:0,A:false};
@@ -1520,17 +1516,18 @@ const CPU={
     return{x:dir*.5,y:clamp(dy/20,-1,1),A:false,R:pil};},
   arc(u,dt,foes,dir,c){const t=nearestBy(foes.filter(f=>f.type==='inf'&&!(f.key==='leg'&&f.rf==='testudo')),u)||nearestBy(foes,u),dx=Math.abs(t.x-u.x),dy=t.y-u.y;
     if(u.aiming){const want=clamp(dx*(1+c.aimErr),u.aimMin+5,u.aimMax-3);return{x:0,y:0,A:u.aimR<want||u.aimDir<0};}
-    if(dx>340){const v=steer(u,t.x-dir*260,t.y,dt);return{x:v[0],y:v[1],A:false};}
+    if(dx>u.aimMax-20){const v=steer(u,t.x-dir*(u.aimMax-60),t.y,dt);return{x:v[0],y:v[1],A:false};}
     if(Math.abs(dy)>3)return{x:0,y:clamp(dy/14,-1,1),A:false};
     if(u.reload>0)return{x:0,y:0,A:false};c.aimErr=(R()-.5)*.08;return{x:0,y:0,A:true};},
-  artFlat(u,dt,foes,dir,c){const pref=u.key==='at'?foes.filter(f=>f.type==='tank'):foes.filter(f=>f.type==='inf'&&!(f.key==='leg'&&f.rf==='testudo'));
+  artFlat(u,dt,foes,dir,c){const mr=artMaxRange(u)-10;foes=foes.filter(f=>(f.x-u.x)*dir>0&&Math.abs(f.x-u.x)<mr);if(!foes.length)return idle0;
+    const pref=u.key==='at'?foes.filter(f=>f.type==='tank'):foes.filter(f=>f.type==='inf'&&!(f.key==='leg'&&f.rf==='testudo'));
     const t=nearestBy(pref,u)||nearestBy(foes,u);let best=t.y-u.y;
     if(t.type!=='tank')for(const o of t.men)if(o.alive&&Math.abs(o.y-u.y)<Math.abs(best))best=o.y-u.y;
     const tol=t.type==='tank'?5:2;if(Math.abs(best)>tol)return{x:0,y:clamp(best/8,-1,1),A:false};
     const fire=u.reload<=0&&u.setup<=0&&!c.lastA;c.lastA=fire;return{x:0,y:0,A:fire};},
   mg(u,dt,foes,dir,c){const g=u.men.find(m=>m.alive)||u;const t=nearestBy(foes.filter(f=>f.type==='inf'),u)||nearestBy(foes.filter(f=>f.type!=='tank'),u)||nearestBy(foes,u);const dx=Math.abs(t.x-g.x);
     if(dx>360&&!u.firing){const v=steer(u,t.x-dir*300,t.y,dt);return{x:v[0],y:v[1],A:false};}
-    if(u.over||u.heat>.9)return{x:0,y:0,A:false};const wantY=(t.y-g.y)*380/Math.max(60,dx),d=wantY-(u.mgY||0);
+    if(u.over||u.heat>.9||(t.x-g.x)*dir<20||Math.abs(t.y-g.y)>Math.abs(t.x-g.x))return{x:0,y:0,A:false};const wantY=(t.y-g.y)*380/Math.max(60,dx),d=wantY-(u.mgY||0);
     return{x:0,y:u.firing?(d>5?1:d<-5?-1:0):0,A:true};},
   tank(u,dt,foes,dir,c){const t=nearestBy(foes.filter(f=>f.key==='at'||f.key==='mg'||f.key==='rif'),u)||nearestBy(foes,u);const dx=Math.abs(t.x-u.x),dy=t.y-u.y;
     if(dx>320&&!u.track){const v=steer(u,t.x-dir*250,t.y,dt);return{x:v[0],y:v[1],A:false};}
@@ -1540,33 +1537,6 @@ const CPU={
 
 /* ================= GRAFIKA EPOK ================= */
 let DRAWU=null,DRAWM=null,DRAWI=0;
-function eraSoldier(x,y,s,right,anim,moving,aim,flag,crew,flash){
-  const u=DRAWU,S=SIDE[s],r=spr(x,y,right),skin='#d7ae86';
-  ctx.fillStyle='rgba(0,0,0,.28)';ctx.fillRect(x-3,y-1,6,2);
-  if(G.era==='ww2'&&u&&(u.supT>0||(u.key==='mg'&&DRAWI===0)||u.type==='art')){// przygwożdżeni / obsługa – nisko
-    if(u.key==='mg'&&DRAWI===0){r(-6,-2,3,2,S.pants);r(-3,-3,5,3,S.coat);r(2,-4,2,2,skin);r(1,-5,4,1,S.hat);r(4,-3,7,1,'#26282a');r(10,-3,1,1,'#26282a');r(7,-2,1,2,'#26282a');
-      if(u.firing&&Math.floor(G.t*20)%2)r(11,-4,2,2,'#fff2a0');return true;}
-    kneel(x,y,s,right);r(0,-10,4,1,S.hat);r(-1,-9,6,1,S.hat);return true;}
-  const f=moving?(Math.floor(anim)%2):-1,P=S.pants,B='#221a12';
-  if(f===0){r(-2,-4,1,3,P);r(1,-4,1,3,P);}else if(f===1){r(-1,-4,1,3,P);r(0,-4,1,3,P);}else{r(-2,-4,1,3,P);r(0,-4,1,3,P);}
-  r(-2,-1,1,1,B);r(f===0?1:0,-1,1,1,B);
-  if(G.era==='rome'){
-    r(-2,-8,4,4,flash?'#fff':S.coat);r(-2,-8,1,4,flash?'#fff':S.coatD);r(-2,-5,4,1,'#6a4a2a');
-    r(-1,-10,3,2,skin);r(-2,-12,4,2,S.hat);r(-2,-10,1,1,S.hat);r(-1,-13,3,1,S.crest);
-    if(crew)return true;
-    if(u&&u.key==='arc'){r(-3,-10,1,5,'#6b4a2a');if(aim||u.aiming){r(2,-11,1,7,'#7a5a30');r(3,-12,1,1,'#7a5a30');r(3,-4,1,1,'#7a5a30');r(0,-8,2,1,skin);}else{r(2,-12,1,8,'#7a5a30');}return true;}
-    if(u&&u.key==='leg'&&(u.rf==='testudo'||u.rf==='orbis')){r(-3,-14,7,2,S.shield);r(0,-14,1,1,'#e0c060');}
-    else{r(-3,-17,1,13,'#6a4a2a');r(-3,-18,1,2,'#c8ccd0');}
-    r(1,-10,3,8,S.shield);r(2,-7,1,2,'#e0c060');r(1,-10,3,1,'#e0c060');
-    if(flag){r(-4,-24,1,20,'#6a4a2a');r(-7,-23,6,5,S.flag[0]);r(-7,-24,6,1,S.flag[1]);r(-5,-26,2,2,'#e0c060');}
-    return true;}
-  // 1939
-  r(-2,-8,4,4,flash?'#fff':S.coat);r(-2,-8,1,4,flash?'#fff':S.coatD);r(-2,-5,4,1,'#2a2418');
-  r(-1,-10,3,2,skin);
-  if(S.helm==='de'){r(-2,-12,5,2,S.hat);r(-3,-11,1,1,S.hat);r(3,-11,1,1,S.hat);}else{r(-2,-12,4,2,S.hat);r(-1,-13,3,1,S.hat);r(-3,-11,1,1,S.hat);r(2,-11,1,1,S.hat);}
-  if(crew)return true;
-  if(aim){r(1,-8,6,1,'#3e2a18');r(7,-8,1,1,'#8a9096');}else{r(2,-13,1,8,'#3e2a18');r(2,-14,1,1,'#8a9096');}
-  return true;}
 function drawBallista(u,x,y){const d=clDir(u.side),r=spr(Math.round(x),Math.round(y),d>0),loaded=u.reload<=0;
   r(-8,-1,16,2,'rgba(0,0,0,.3)');r(-6,-4,12,3,'#6a4a2a');r(-1,-9,2,5,'#5a3e22');r(-6,-10,14,2,'#7a5a36');
   r(4,-14,1,4,'#4e3520');r(4,-8,1,4,'#4e3520');r(3,-15,2,1,'#4e3520');r(3,-4,2,1,'#4e3520');
@@ -1579,13 +1549,6 @@ function drawATGun(u,x,y){const d=clDir(u.side),rc=Math.round(u.recoil*3),r=spr(
   r(-2,-10,3,7,S.veh);r(-2,-10,3,1,'#8a8a80');r(0,-7,14,2,'#34363a');r(14,-7,1,2,'#1e1e1e');}
 function drawMortar(u,x,y){const d=clDir(u.side),r=spr(Math.round(x),Math.round(y),d>0);
   r(-4,-1,8,2,'rgba(0,0,0,.3)');r(-3,-2,6,1,'#3a3a36');for(let k=0;k<8;k++)r(Math.round(k*.45),-3-k,2,1,'#34363a');r(3,-12,2,1,'#1e1e1e');r(1,-5,1,3,'#3a3a36');}
-function drawTank(u,x,y){x=Math.round(x);y=Math.round(y);const d=clDir(u.side),rc=Math.round(u.recoil*2),S=SIDE[u.side],r=spr(x-d*rc,y,d>0),col=u.hitFlash>.15?'#ffffff':S.veh;
-  ctx.fillStyle='rgba(0,0,0,.3)';ctx.fillRect(x-14,y-1,28,3);
-  r(-13,-5,26,5,'#24241f');const ph=Math.floor(u.anim||0)%3;for(let k=-12;k<13;k+=3)r(k+ph-1,-5,1,5,'#46463e');for(let k=-10;k<11;k+=5)r(k,-3,2,2,'#6a6a60');
-  r(-12,-10,24,5,col);r(-12,-10,24,1,'#9a9a88');r(-12,-6,24,1,'rgba(0,0,0,.25)');
-  r(-5,-15,11,5,col);r(-4,-16,9,1,'#9a9a88');r(6,-13,12,2,'#2e2e2a');r(18,-13,1,2,'#141414');
-  if(S.helm==='de'){r(-9,-9,1,3,'#f0f0f0');r(-10,-8,3,1,'#f0f0f0');}else{r(-10,-9,2,1,'#ffffff');r(-10,-8,2,1,'#d4213d');r(-8,-9,2,1,'#d4213d');r(-8,-8,2,1,'#ffffff');}
-  if(u.track){r(-13,-5,6,5,'#6a3a20');if(R()<.2)parts.push({k:'smoke',x:u.x-d*10,y:u.y-4,vx:0,vy:-6,r:2,g:4,life:0,max:2,a:.4});}}
 const GUNDRAW={bal:drawBallista,ona:drawOnager,at:drawATGun,mor:drawMortar};
 const PROJDRAW={
   arrow(p,x,y){const k=Math.min(1,p.t/p.T),vy=Math.cos(Math.PI*k)*p.H*Math.PI/p.T,vx=(p.tx-p.sx)/p.T,a=Math.atan2(-vy*.5,vx);ctx.strokeStyle='#3a2a18';ctx.beginPath();ctx.moveTo(x-Math.cos(a)*3,y-p.h-Math.sin(a)*3);ctx.lineTo(x+Math.cos(a)*2,y-p.h+Math.sin(a)*2);ctx.stroke();},
@@ -1761,11 +1724,11 @@ function eraTick2(dt){_eraTick(dt);if(!G.mines)return;
 function layMines(){G.mines=[];for(const[x,y,w,h,n]of mineRects(MAP.def))for(let i=0;i<n;i++){const mx=x+R()*w,my=y+R()*h;if(tAt(mx,my)!==T.WATER)G.mines.push({x:mx,y:my});}}
 
 /* --- komputer --- */
-Object.assign(CPUSCORE,{num:()=>44,ele:()=>50,war:()=>45,ppk:(u,f)=>f.some(e=>e.type==='tank')?52:30});
+Object.assign(CPUSCORE,{num:()=>44,ele:()=>50,war:()=>45,ppk:(u,f)=>u.shots===0||u.resup?45:f.some(e=>e.type==='tank')?52:30});
 const _CPUleg=CPU.leg;
 CPU.leg=function(u,dt,foes,dir,c){const forms=kdOf(u).forms;if(forms.includes('testudo'))return _CPUleg(u,dt,foes,dir,c);
   const t=nearestBy(foes.filter(f=>f.type==='inf'),u)||nearestBy(foes,u),dx=Math.abs(t.x-u.x),dy=t.y-u.y;
-  const threat=foes.some(f=>f.type==='cav'&&dist(f.x,f.y,u.x,u.y)<200)||foes.some(f=>(f.key==='arc'||f.key==='bal')&&Math.abs(f.x-u.x)<400);
+  const threat=foes.some(f=>f.type==='cav'&&dist(f.x,f.y,u.x,u.y)<200)||foes.some(f=>(UCLASS[f.key]==='missile'||f.key==='bal')&&Math.abs(f.x-u.x)<400);
   const want=threat&&dx>90?'phalanx':'line';if(want!==u.rf){const A=!c.lastA;c.lastA=A;return{x:0,y:0,A};}c.lastA=false;
   if(u.key==='pik'&&foes.some(f=>f.type==='cav'&&dist(f.x,f.y,u.x,u.y)<220))return{x:0,y:0,A:false};
   if(dx>40){const v=steer(u,t.x,t.y,dt);return{x:v[0],y:v[1],A:false};}return{x:dir*.5,y:clamp(dy/20,-1,1),A:false};};
@@ -1775,13 +1738,13 @@ Object.assign(CPU,{
     if(Math.abs(dx)>300){const v=steer(u,t.x-dir*110,t.y,dt);return{x:v[0],y:v[1],A:false};}return{x:ix,y:iy,A:fire};},
   ele(u,dt,foes,dir,c){const t=nearestBy(foes.filter(f=>f.type==='inf'),u)||nearestBy(foes,u),dx=Math.abs(t.x-u.x),dy=t.y-u.y;
     if(u.chargeT>0)return{x:0,y:clamp(dy/16,-1,1),A:false};
-    if(dx>330){const v=steer(u,t.x-dir*250,t.y,dt);return{x:v[0],y:v[1],A:false};}
+    if(dx>160){const v=steer(u,t.x-dir*120,t.y,dt);return{x:v[0],y:v[1],A:false};}
     const go=Math.abs(dy)<14&&u.tiredT<=0&&!c.lastA;c.lastA=go;return{x:0,y:clamp(dy/14,-1,1),A:go};},
   war(u,dt,foes,dir,c){const t=nearestBy(foes.filter(f=>f.type==='inf'),u)||nearestBy(foes,u),dx=Math.abs(t.x-u.x),dy=t.y-u.y;
     if(u.furyT>0)return{x:0,y:clamp(dy/16,-1,1),A:false};
     const go=dx<170&&Math.abs(dy)<30&&u.tiredT<=0&&!c.lastA;c.lastA=go;if(go)return{x:0,y:0,A:true};
     const v=steer(u,t.x,t.y,dt);return{x:v[0],y:v[1],A:false};},
-  ppk(u,dt,foes,dir,c){const t=nearestBy(foes.filter(f=>f.type==='tank'),u)||nearestBy(foes.filter(f=>f.type==='inf'),u)||nearestBy(foes,u);const g=u.men.find(m=>m.alive)||u,dx=Math.abs(t.x-g.x),dy=t.y-g.y;
+  ppk(u,dt,foes,dir,c){if(cpuResupply(u))return cpuResupply(u,dt);const t=nearestBy(foes.filter(f=>f.type==='tank'),u)||nearestBy(foes.filter(f=>f.type==='inf'),u)||nearestBy(foes,u);const g=u.men.find(m=>m.alive)||u,dx=Math.abs(t.x-g.x),dy=t.y-g.y;
     if(dx>260){const v=steer(u,t.x-dir*180,t.y,dt);return{x:v[0],y:v[1],A:false};}
     const tol=t.type==='tank'?5:2.5;if(Math.abs(dy)>tol)return{x:0,y:clamp(dy/8,-1,1),A:false};const fire=u.reload<=0&&!c.lastA;c.lastA=fire;return{x:0,y:0,A:fire};},
   tank(u,dt,foes,dir,c){const t=nearestBy(foes.filter(f=>f.key==='at'||f.key==='mg'||f.key==='rif'||f.key==='ppk'),u)||nearestBy(foes,u),dx=Math.abs(t.x-u.x);
@@ -1830,7 +1793,7 @@ function drawTank(u,x,y){x=Math.round(x);y=Math.round(y);const S=SIDE[u.side],co
   if(Math.abs(c)>=.5||!Number.isFinite(hd)){const rc=Math.round(u.recoil*2),r=spr(x-(c>0?rc:-rc),y,c>0);
     r(-13,-5,26,5,'#24241f');for(let k=-12;k<13;k+=3)r(k+ph-1,-5,1,5,'#46463e');for(let k=-10;k<11;k+=5)r(k,-3,2,2,'#6a6a60');
     r(-12,-10,24,5,col);r(-12,-10,24,1,'#9a9a88');r(-12,-6,24,1,'rgba(0,0,0,.25)');
-    r(-5,-15,11,5,col);r(-4,-16,9,1,'#9a9a88');r(6,-13,12,2,'#2e2e2a');r(18,-13,1,2,'#141414');insig(r,-10,-9);}
+    r(-5,-15,11,5,col);r(-4,-16,9,1,'#9a9a88');r(6,-13,12,2,'#2e2e2a');r(18,-13,1,2,'#141414');insig(r,-10,-9);if(u.track)r(-13,-5,6,5,'#6a3a20');}
   else{const r=spr(x,y,true),front=s>0;
     r(-11,-9,4,9,'#24241f');r(7,-9,4,9,'#24241f');for(let k=-8;k<0;k+=3){r(-11,k+ph,4,1,'#46463e');r(7,k+ph,4,1,'#46463e');}
     r(-7,-11,14,8,col);r(-7,-11,14,1,'#9a9a88');r(-5,-16,10,5,col);r(-4,-17,8,1,'#9a9a88');
@@ -1954,11 +1917,12 @@ function tankGun(u,dt,I){const can=u.reload<=0&&(u.shots===undefined||u.shots>0)
   if(!I.inp){u.tAim=0;u.aiming=false;return;}
   if(st===0){if(I.Ap){if(!can){if(I.hum){AU.bad();if(u.shots===0)noAmmo(u);}return;}u.tAim=1;u.aimA=clamp(relCone(u,u.hd),-CONE,CONE);if(I.hum)AU.ui();}return;}
   if(st===1){u.aimA=clamp(u.aimA+I.y*1.3*dt,-CONE,CONE);if(!I.A){u.tAim=2;u.tWait=0;}return;}
-  if(st===2){u.tWait+=dt;if(Math.hypot(I.x,I.y)>.6||u.tWait>5){u.tAim=0;return;}if(I.Ap&&can){u.tAim=3;u.aiming=true;u.aimDir=1;u.aimR=u.aimMin;}return;}
-  if(I.A){u.aimR+=u.aimDir*390*dt;if(u.aimR>u.aimMax){u.aimR=u.aimMax;u.aimDir=-1;}if(u.aimR<u.aimMin){u.aimR=u.aimMin;u.aimDir=1;}}
-  else{u.tAim=0;u.aiming=false;u.hd=tankAimH(u);tankFire(u,u.aimR,true);}}
+  if(st===2){u.tWait+=dt;if((u.tWait>.3&&Math.abs(I.x)>.6)||u.tWait>5){u.tAim=0;return;}if(I.Ap&&can){u.tAim=3;u.aiming=true;u.aimDir=1;u.aimR=u.aimMin;}return;}
+  if(st===3){if(I.A){u.aimR+=u.aimDir*390*dt;if(u.aimR>u.aimMax){u.aimR=u.aimMax;u.aimDir=-1;}if(u.aimR<u.aimMin){u.aimR=u.aimMin;u.aimDir=1;}}else u.tAim=4;return;}
+  // etap 4: siła ustalona, strzał gdy kadłub obróci się w kierunek strzału
+  if(Math.abs(angDiff(u.hd,tankAimH(u)))<.1){u.tAim=0;u.aiming=false;u.hd=tankAimH(u);tankFire(u,u.aimR,true);}}
 KD.tank.init=u=>{u.reloadMax=2.7;u.track=false;u.hd=u.side===0?0:Math.PI;u.aimMin=60;u.aimMax=460;};
-KD.tank.status=u=>u.tAim===1?'KIERUNEK: drążek góra–dół, puść A':u.tAim===2?'A: trzymaj = odległość · drążek = anuluj':u.tAim===3?`Odległość ${Math.round(u.aimR)} kroków – puść A`:`${u.reload>0?'Ładowanie działa':'Trzymaj A = kierunek strzału'} · RT: km`;
+KD.tank.status=u=>u.tAim===4?'Obrót do strzału…':u.tAim===1?'KIERUNEK: drążek góra–dół, puść A':u.tAim===2?'A: trzymaj = odległość · drążek = anuluj':u.tAim===3?`Odległość ${Math.round(u.aimR)} kroków – puść A`:`${u.reload>0?'Ładowanie działa':'Trzymaj A = kierunek strzału'} · RT: km`;
 // uzupełnianie amunicji: czołg i rusznica w swojej strefie, na postoju
 const _eraTick2=eraTick2;
 function eraTick3(dt){_eraTick2(dt);if(!G.ammoLimit)return;
@@ -1974,15 +1938,19 @@ AUTO.tank=function(u,dt){const c=Math.cos(u.hd||0),s=Math.sin(u.hd||0);
 const _autoPpk=AUTO.ppk;AUTO.ppk=function(u,dt){if(u.shots===0)return;const before=u.reload;_autoPpk(u,dt);if(u.shots!==undefined&&u.reload>before)u.shots--;};
 // komputer: czołg celuje odległością, bez amunicji wraca po zapasy
 CPU.tank=function(u,dt,foes,dir,c){
-  if(u.shots===0){const hx=u.side===0?DEPLOY-60:W-DEPLOY+60;if(Math.abs(u.x-hx)>20){const v=steer(u,hx,u.y,dt);return{x:v[0],y:v[1],A:false};}return idle0;}
+  if(cpuResupply(u))return cpuResupply(u,dt);
   const t=nearestBy(foes.filter(f=>f.key==='at'||f.key==='mg'||f.key==='rif'||f.key==='ppk'),u)||nearestBy(foes,u),d=dist(u.x,u.y,t.x,t.y);
   const h=Math.atan2(t.y-u.y,t.x-u.x),a=relCone(u,h),mg=t.type==='inf'&&d<300&&Math.abs(angDiff(u.hd,h))<.25,st=u.tAim||0;
   if(st===3){const want=clamp(d*(1+c.aimErr),u.aimMin+5,u.aimMax-3);return{x:0,y:0,A:u.aimR<want||u.aimDir<0};}
+  if(st===4)return idle0;
   if(st===1){const da=clamp(a,-CONE,CONE)-u.aimA;return Math.abs(da)>.02?{x:0,y:clamp(da*10,-1,1),A:true}:idle0;}
   if(st===2){if(Math.abs(angDiff(u.hd,tankAimH(u)))<.1){c.aimErr=(R()-.5)*.1;return{x:0,y:0,A:true};}return idle0;}
   if((d>u.aimMax*.9||Math.abs(a)>CONE)&&!u.track){const v=steer(u,t.x-dir*300,t.y,dt);return{x:v[0],y:v[1],A:false,R:mg};}
   return{x:0,y:0,A:u.reload<=0&&Math.abs(a)<=CONE,R:mg};};
 const idle0={x:0,y:0,A:false};
+// komputer: oddział bez amunicji (z uzupełnianiem) wraca do swojej strefy i stoi, aż zapas wróci do 60%
+function cpuResupply(u,dt){if(u.shotsMax===undefined||!RESUPPLY[u.key])return null;if(u.shots===0)u.resup=true;else if(u.shots>=u.shotsMax*.6)u.resup=false;if(!u.resup)return null;
+  if(dt===undefined)return true;const hx=u.side===0?DEPLOY-60:W-DEPLOY+60;if(Math.abs(u.x-hx)>20){const v=steer(u,hx,u.y,dt);return{x:v[0],y:v[1],A:false};}return idle0;}
 
 /* ================= LOTNICTWO (XX wiek): nalot na wysokości wybranego oddziału ================= */
 // LT: samolot przelatuje nad polem na wysokości wybranego oddziału i zrzuca bomby nad połową wroga.
@@ -2042,7 +2010,7 @@ const UCLASS={inf:'inf',cav:'cav',lan:'lan',art:'art',
 // kto jest skuteczniejszy od kogo (każda jednostka ma tyle samo przewag co słabości)
 const BEATS={
   cav:['inf'],inf:['art'],art:['lan'],lan:['cav'],
-  heavy:['rcav','missile'],rcav:['missile','flat'],missile:['flat','arcm','beast'],flat:['arcm','heavy','beast'],arcm:['heavy','rcav'],beast:['heavy','rcav'],
+  heavy:['rcav','missile'],rcav:['missile','flat'],missile:['flat','arcm'],flat:['arcm','beast'],arcm:['heavy','rcav'],beast:['heavy'],
   rif:['at','mor'],mg:['rif','ppk'],ppk:['tank','mor'],tank:['rif','mg'],at:['ppk','tank'],mor:['mg','at']};
 const EFF_UP=1.35,EFF_DN=1/1.35;
 function eff(a,b){if(!a||!b||G.rules!=='classic')return 1;const ca=UCLASS[a],cb=UCLASS[b];if(!ca||!cb||ca===cb)return 1;
@@ -2447,7 +2415,7 @@ autoDefend=function(u,dt){if(G.era!=='pl17')return _autoDefPL(u,dt);if(G.state!=
   if(u.key==='pik'&&u.rf==='line'&&u.formT<=0&&units.some(e=>e.side!==u.side&&!e.dead&&!e.gone&&e.type==='cav'&&e.state==='ride'&&dist(e.x,e.y,u.x,u.y)<150)){u.rf='phalanx';u.formT=.8;}};
 
 /* --- komputer --- */
-CPUSCORE.tank=u=>u.track||u.shots===0?12:50;
+CPUSCORE.tank=u=>u.shots===0||u.resup?45:u.track?12:50;
 Object.assign(CPUSCORE,{hus:u=>u.state==='ride'?(cavAvoid(u)?72:50):(G.t<8?12:46),skirm:()=>44});
 CPU.hus=function(u,dt,foes,dir,c){const al=u.men.filter(m=>m.alive),armed=al.filter(m=>m.kopia).length;
   const soft=foes.filter(f=>!(f.key==='pik'&&f.rf==='phalanx'));const t=bestTarget(u,soft.length?soft:foes)||nearestBy(foes,u);

@@ -7,7 +7,7 @@ BEH.leg=function(u,dt,I){const{x,y}=I,sp={line:22,testudo:11,wedge:28,orbis:0}[u
   if(I.Ap){const o=['line','testudo','wedge','orbis'];u.rf=o[(o.indexOf(u.rf)+1)%4];u.formT=.8;AU.ui();}
   if(I.Rp&&I.bat){if(u.cd2>0||u.rf==='testudo'||u.rf==='orbis'){if(I.hum)AU.bad();}
     else{const sv=u.reload;u.reload=0;clVolley(u,{reload:.01,range:95,spd:170,pk:.7,kind:'pilum',noPowder:true});u.reload=sv;u.cd2=5;}}};
-BEH.arc=function(u,dt,I){const{x,y,A}=I;
+BEH.arc=function(u,dt,I){const{x,y,A}=I;if(!I.inp){u.aHold=0;u.aiming=false;}
   if(!u.aiming){const sp=24*(G.weather==='rain'?.9:1),horiz=Math.abs(x)>.3&&Math.abs(x)>=Math.abs(y),vert=Math.abs(y)>.3&&Math.abs(y)>Math.abs(x);
     if(horiz){u.s=Math.min(1,u.s+dt*.7);u.colDir=Math.sign(x);}else if(vert)u.s=Math.max(0,u.s-dt*1.1);
     clMoveMen(u,x*sp,y*sp,dt,false,vert?2.2:horiz?1.2:0,I.hum);}

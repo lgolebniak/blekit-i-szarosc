@@ -109,11 +109,11 @@ function eraTick2(dt){_eraTick(dt);if(!G.mines)return;
 function layMines(){G.mines=[];for(const[x,y,w,h,n]of mineRects(MAP.def))for(let i=0;i<n;i++){const mx=x+R()*w,my=y+R()*h;if(tAt(mx,my)!==T.WATER)G.mines.push({x:mx,y:my});}}
 
 /* --- komputer --- */
-Object.assign(CPUSCORE,{num:()=>44,ele:()=>50,war:()=>45,ppk:(u,f)=>f.some(e=>e.type==='tank')?52:30});
+Object.assign(CPUSCORE,{num:()=>44,ele:()=>50,war:()=>45,ppk:(u,f)=>u.shots===0||u.resup?45:f.some(e=>e.type==='tank')?52:30});
 const _CPUleg=CPU.leg;
 CPU.leg=function(u,dt,foes,dir,c){const forms=kdOf(u).forms;if(forms.includes('testudo'))return _CPUleg(u,dt,foes,dir,c);
   const t=nearestBy(foes.filter(f=>f.type==='inf'),u)||nearestBy(foes,u),dx=Math.abs(t.x-u.x),dy=t.y-u.y;
-  const threat=foes.some(f=>f.type==='cav'&&dist(f.x,f.y,u.x,u.y)<200)||foes.some(f=>(f.key==='arc'||f.key==='bal')&&Math.abs(f.x-u.x)<400);
+  const threat=foes.some(f=>f.type==='cav'&&dist(f.x,f.y,u.x,u.y)<200)||foes.some(f=>(UCLASS[f.key]==='missile'||f.key==='bal')&&Math.abs(f.x-u.x)<400);
   const want=threat&&dx>90?'phalanx':'line';if(want!==u.rf){const A=!c.lastA;c.lastA=A;return{x:0,y:0,A};}c.lastA=false;
   if(u.key==='pik'&&foes.some(f=>f.type==='cav'&&dist(f.x,f.y,u.x,u.y)<220))return{x:0,y:0,A:false};
   if(dx>40){const v=steer(u,t.x,t.y,dt);return{x:v[0],y:v[1],A:false};}return{x:dir*.5,y:clamp(dy/20,-1,1),A:false};};
@@ -123,13 +123,13 @@ Object.assign(CPU,{
     if(Math.abs(dx)>300){const v=steer(u,t.x-dir*110,t.y,dt);return{x:v[0],y:v[1],A:false};}return{x:ix,y:iy,A:fire};},
   ele(u,dt,foes,dir,c){const t=nearestBy(foes.filter(f=>f.type==='inf'),u)||nearestBy(foes,u),dx=Math.abs(t.x-u.x),dy=t.y-u.y;
     if(u.chargeT>0)return{x:0,y:clamp(dy/16,-1,1),A:false};
-    if(dx>330){const v=steer(u,t.x-dir*250,t.y,dt);return{x:v[0],y:v[1],A:false};}
+    if(dx>160){const v=steer(u,t.x-dir*120,t.y,dt);return{x:v[0],y:v[1],A:false};}
     const go=Math.abs(dy)<14&&u.tiredT<=0&&!c.lastA;c.lastA=go;return{x:0,y:clamp(dy/14,-1,1),A:go};},
   war(u,dt,foes,dir,c){const t=nearestBy(foes.filter(f=>f.type==='inf'),u)||nearestBy(foes,u),dx=Math.abs(t.x-u.x),dy=t.y-u.y;
     if(u.furyT>0)return{x:0,y:clamp(dy/16,-1,1),A:false};
     const go=dx<170&&Math.abs(dy)<30&&u.tiredT<=0&&!c.lastA;c.lastA=go;if(go)return{x:0,y:0,A:true};
     const v=steer(u,t.x,t.y,dt);return{x:v[0],y:v[1],A:false};},
-  ppk(u,dt,foes,dir,c){const t=nearestBy(foes.filter(f=>f.type==='tank'),u)||nearestBy(foes.filter(f=>f.type==='inf'),u)||nearestBy(foes,u);const g=u.men.find(m=>m.alive)||u,dx=Math.abs(t.x-g.x),dy=t.y-g.y;
+  ppk(u,dt,foes,dir,c){if(cpuResupply(u))return cpuResupply(u,dt);const t=nearestBy(foes.filter(f=>f.type==='tank'),u)||nearestBy(foes.filter(f=>f.type==='inf'),u)||nearestBy(foes,u);const g=u.men.find(m=>m.alive)||u,dx=Math.abs(t.x-g.x),dy=t.y-g.y;
     if(dx>260){const v=steer(u,t.x-dir*180,t.y,dt);return{x:v[0],y:v[1],A:false};}
     const tol=t.type==='tank'?5:2.5;if(Math.abs(dy)>tol)return{x:0,y:clamp(dy/8,-1,1),A:false};const fire=u.reload<=0&&!c.lastA;c.lastA=fire;return{x:0,y:0,A:fire};},
   tank(u,dt,foes,dir,c){const t=nearestBy(foes.filter(f=>f.key==='at'||f.key==='mg'||f.key==='rif'||f.key==='ppk'),u)||nearestBy(foes,u),dx=Math.abs(t.x-u.x);
@@ -178,7 +178,7 @@ function drawTank(u,x,y){x=Math.round(x);y=Math.round(y);const S=SIDE[u.side],co
   if(Math.abs(c)>=.5||!Number.isFinite(hd)){const rc=Math.round(u.recoil*2),r=spr(x-(c>0?rc:-rc),y,c>0);
     r(-13,-5,26,5,'#24241f');for(let k=-12;k<13;k+=3)r(k+ph-1,-5,1,5,'#46463e');for(let k=-10;k<11;k+=5)r(k,-3,2,2,'#6a6a60');
     r(-12,-10,24,5,col);r(-12,-10,24,1,'#9a9a88');r(-12,-6,24,1,'rgba(0,0,0,.25)');
-    r(-5,-15,11,5,col);r(-4,-16,9,1,'#9a9a88');r(6,-13,12,2,'#2e2e2a');r(18,-13,1,2,'#141414');insig(r,-10,-9);}
+    r(-5,-15,11,5,col);r(-4,-16,9,1,'#9a9a88');r(6,-13,12,2,'#2e2e2a');r(18,-13,1,2,'#141414');insig(r,-10,-9);if(u.track)r(-13,-5,6,5,'#6a3a20');}
   else{const r=spr(x,y,true),front=s>0;
     r(-11,-9,4,9,'#24241f');r(7,-9,4,9,'#24241f');for(let k=-8;k<0;k+=3){r(-11,k+ph,4,1,'#46463e');r(7,k+ph,4,1,'#46463e');}
     r(-7,-11,14,8,col);r(-7,-11,14,1,'#9a9a88');r(-5,-16,10,5,col);r(-4,-17,8,1,'#9a9a88');

@@ -103,7 +103,8 @@ function clStrike(a,b,m,o,d){
   if(a.type==='cav'){
     if(a.slashT>0)p=b.type==='cav'?(b.slashT>0?.22:.4):.45;
     else if(a.lance&&a.state==='ride'&&(o.x-m.x)*clDir(a.side)>-2)p=a.gallop?.32:.1;
-    else if(a.gallop&&b.type!=='cav'&&d<6)p=.07;}
+    else if(a.gallop&&b.type!=='cav'&&d<6)p=.07;
+    else if(a.key==='num')p=.03;}
   else if(a.key==='leg'||a.key==='lib')p=({line:.06,wedge:.1,testudo:.012,orbis:.05,phalanx:.05}[a.rf]||.06)*(a.rf==='wedge'&&b.rf==='line'?1.3:1);
   else if(a.key==='war')p=.06*(a.furyT>0?2:a.tiredT>0?.6:1);
   else if(a.type==='inf')p=a.key==='arc'||a.key==='mg'?.015:b.type==='cav'?.035:b.type==='art'?.06:.025;
@@ -209,7 +210,7 @@ function nearestBy(list,u){let b=null,bd=1e9;for(const f of list){const d=dist(u
 function cpuScore(u,foes){const ai=kdOf(u).ai;
   if(ai==='flat'){let s=40;const rc=foes.find(f=>f.type==='cav'&&f.state==='ride');if(rc&&Math.abs(rc.x-u.x)<320)s+=70;return s;}
   if(ai==='cav'||ai==='lance'){if(u.state==='ride'&&foes.some(f=>f.men.some(o=>o.alive&&Math.abs(o.x-u.x)<40&&Math.abs(o.y-u.y)<30)))return 85;let s=u.state==='ride'?(cavAvoid(u)?72:48):(foes.some(f=>f.type==='art')?52:28);if(G.t<10&&u.state!=='ride')s-=40;return s;}
-  if(ai==='artArc'||ai==='artFlat'){const mr=artMaxRange(u),mn=u.minR||SPEC.art.min;const ok=foes.some(f=>Math.abs(f.x-u.x)<mr-10&&Math.abs(f.x-u.x)>mn+10);return ok&&u.reload<=0&&u.shots!==0?58:4;}
+  if(ai==='artArc'||ai==='artFlat'){const mr=artMaxRange(u),mn=ai==='artFlat'?10:u.minR||SPEC.art.min;const ok=foes.some(f=>Math.abs(f.x-u.x)<mr-10&&Math.abs(f.x-u.x)>mn+10);return ok&&u.reload<=0&&u.shots!==0?58:4;}
   return CPUSCORE[ai]?CPUSCORE[ai](u,foes):40;}
 function cpuPick(dt){const c=G.cpu;c.t-=dt;c.hold-=dt;const cur=clSel(1),live=cur&&cur.state!=='enter';
   if(live&&c.hold>0)return;if(live&&c.t>0)return;c.t=.4;
@@ -218,7 +219,7 @@ function cpuPick(dt){const c=G.cpu;c.t-=dt;c.hold-=dt;const cur=clSel(1),live=cu
   let best=null,bs=-1e9;
   for(const u of mine){let s=cpuScore(u,foes);
     const thr=foes.find(f=>(f.type==='cav'&&f.state==='ride'||f.type==='ele'||f.furyT>0)&&dist(f.x,f.y,u.x,u.y)<220&&eff(u.key,f.key)>=1);if(thr&&(u.type==='inf'||u.type==='art'))s+=45;
-    if(u.pendVol||u.aiming)s+=30;s+=R()*18;if(cur&&u.id===cur.id)s+=10;if(s>bs){bs=s;best=u;}}
+    if(u.pendVol||u.aiming||u.tAim||u.aHold>0)s+=30;s+=R()*18;if(cur&&u.id===cur.id)s+=10;if(s>bs){bs=s;best=u;}}
   if(best&&(!cur||best.id!==cur.id)){G.csel[1]=best.id;c.react=.22+R()*.25;c.lastA=false;}
   c.hold=best&&best.type==='cav'?3.5:1.6+R()*1.4;}
 function alignPair(u,t,dir){const menOf=f=>f.men.filter(m=>m.alive);let best=1e9,bdx=1e9;
@@ -232,7 +233,7 @@ function cpuClassic(u,dt){const c=G.cpu;const idle={x:0,y:0,A:false};if(c.react>
     const[best,bdx]=alignPair(u,t,dir);
     let iy=0,ix=0;if(Math.abs(best)<200){if(Math.abs(best)>1.5)iy=clamp(best/6,-1,1);}else iy=clamp((t.y-u.y)/14,-1,1);
     const dx=Math.abs(t.x-u.x);const fire=Math.abs(best)<3&&bdx<rg&&u.reload<=0&&!c.lastA;c.lastA=fire;
-    const gren=kd.gren&&u.cd2<=0&&dx<85&&Math.abs(t.y-u.y)<25;
+    const gren=kd.gren&&u.cd2<=0&&((dx<85&&Math.abs(t.y-u.y)<25)||foes.some(f=>f.type==='tank'&&!f.track&&(f.x-u.x)*dir>0&&Math.abs(f.x-u.x)<85&&Math.abs(f.y-u.y)<20));
     const blocked=passF('inf',u.x+dir*22,u.y)<=0||tAt(u.x+dir*22,u.y)===T.WATER;
     if(t.type!=='cav'&&(dx>rg*.85||(blocked&&dx>70))){const v=steer(u,t.x-dir*150,t.y,dt);return{x:v[0],y:v[1],A:fire,R:gren};}
     if(t.type!=='cav'&&Math.abs(iy)<.5&&dx<90&&!kd.gren)ix=-dir*.6;

@@ -16,10 +16,11 @@ const {chromium}=require(process.env.PW||'playwright');
     // czołg: trzymaj A + drążek w dół (kierunek), puść, drugie A trzymane (siła), puść
     u=sel('tank');u.reload=0;projs.length=0;const hd0=u.hd;
     step(25,{KeyF:1,KeyS:1});out.etap1=u.tAim;step(3,{});out.etap2=u.tAim;step(20,{});
-    step(15,{KeyF:1});out.etap3=u.tAim;step(1,{});
-    const p=projs.find(p=>p.kind==='tshell');out.czolgKat=p?+(Math.atan2(p.ty-u.y,p.tx-u.x)*57.3).toFixed(1):null;out.czolgDystans=p?Math.round(p.rr):null;out.etapPo=u.tAim;
+    let strzal=null;const tf=tankFire;tankFire=function(t,r,m){if(t===u)strzal={hd:t.hd,r};return tf(t,r,m);};
+    step(15,{KeyF:1});out.etap3=u.tAim;step(45,{});tankFire=tf;
+    out.czolgKat=strzal?+(strzal.hd*57.3).toFixed(1):null;out.czolgDystans=strzal?Math.round(strzal.r):null;out.etapPo=u.tAim;
     // czołg: drążek przed drugim A anuluje
-    u.reload=0;step(10,{KeyF:1});step(2,{});step(5,{KeyD:1});out.anulowano=u.tAim===0;
+    u.reload=0;step(10,{KeyF:1});step(2,{});step(15,{KeyD:1});out.anulowano=u.tAim===0;
     for(const k in KEYS)KEYS[k]=false;return out;});
   console.log(JSON.stringify(r));
   const ok=r.rifProsto.length&&r.rifProsto.every(a=>Math.abs(a)<1)&&r.rifSkos.length&&r.rifSkos.every(a=>a>5&&a<=45.5)&&r.mgMin<=-40&&r.etap1===1&&r.etap2===2&&r.etap3===3&&r.czolgKat>5&&r.czolgKat<=47&&r.anulowano&&!errs.length;
