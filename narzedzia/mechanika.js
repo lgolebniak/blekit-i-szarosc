@@ -13,6 +13,8 @@ const {chromium}=require(process.env.PW||'playwright');
     step(35,{KeyD:1});out.husSzarza=h.state;
     // ułani (secesja): cofanie zablokowane
     setVariant('acw');G.rules='classic';startBattle();step(200);const l=sel('lan');const lx=l.x;step(40,{KeyA:1});out.ulaniCofa=+(l.x-lx).toFixed(1);
+    // słoń: cofanie zablokowane
+    setVariant('rome_c');G.rules='classic';startBattle();step(200);const el=units.find(u=>u.side===1&&u.key==='ele');if(el){G.csel[1]=el.id;const ex=el.x;for(let i=0;i<40;i++){KEYS.ArrowRight=true;pollInput(dt);clStep(dt);}KEYS.ArrowRight=false;out.slonCofa=+(el.x-ex).toFixed(1);}
     // zasięg dział: nie sięga oddziałów wroga z pozycji wyjściowej
     out.zasieg={};for(const v of['acw','kirch','rome','ww2','gett']){setVariant(v);G.rules='classic';startBattle();if(G.state==='deploy')snapDeploy();step(220);
       let worst=-1e9;for(const g of units.filter(u=>u.type==='art'&&!u.dead)){const mr=artMaxRange(g);for(const e of units.filter(e=>e.side!==g.side&&!e.dead&&e.state!=='enter')){const d=Math.abs(e.x-g.x);worst=Math.max(worst,mr-d);}}
@@ -34,5 +36,5 @@ const {chromium}=require(process.env.PW||'playwright');
   await pg.screenshot({path:require('path').resolve(__dirname,'../zrzuty/nalot.png'),clip:box});
   console.log(JSON.stringify(r));
   const z=Object.values(r.zasieg);
-  const ok=Math.abs(r.husCofa)<1&&r.husCiecie&&r.husSzarza==='ride'&&Math.abs(r.ulaniCofa)<1&&z.every(v=>v<0)&&r.husStratyPikiSztorc>r.husStratyPikiMarsz&&r.nalot&&r.zabici>0&&r.nalotyZostalo===1&&!r.drugiOdRazu&&!errs.length;
+  const ok=Math.abs(r.husCofa)<1&&r.husCiecie&&r.husSzarza==='ride'&&Math.abs(r.ulaniCofa)<1&&Math.abs(r.slonCofa||0)<1&&r.slonCofa!==undefined&&z.every(v=>v<0)&&r.husStratyPikiSztorc>r.husStratyPikiMarsz&&r.nalot&&r.zabici>0&&r.nalotyZostalo===1&&!r.drugiOdRazu&&!errs.length;
   console.log(errs.join('\n')||'bez błędów strony');await b.close();if(!ok){console.error('TEST MECHANIKI NIEUDANY');process.exit(1);}console.log('Mechanika OK');})();

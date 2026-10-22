@@ -43,7 +43,7 @@ BEH.war=function(u,dt,I){const{x,y,dir}=I;u.tiredT=Math.max(0,(u.tiredT||0)-dt);
 BEH.ele=function(u,dt,I){const dir=clDir(u.side);let vx=0,vy=0;u.moving=false;
   if(u.panicT>0){u.panicT-=dt;vx=-dir*46;vy=Math.sin(G.t*3+u.id)*22;}
   else if(u.chargeT>0){u.chargeT-=dt;vx=dir*50;vy=(I.inp?I.y:0)*30;if(u.chargeT<=0)u.tiredT=3;}
-  else{u.tiredT=Math.max(0,(u.tiredT||0)-dt);const sp=20*(u.tiredT>0?.6:1);vx=I.x*sp;vy=I.y*sp;
+  else{u.tiredT=Math.max(0,(u.tiredT||0)-dt);const sp=20*(u.tiredT>0?.6:1);vx=(I.x*dir<0?0:I.x)*sp;vy=I.y*sp;// słoń nie cofa się (ucieka tylko w panice)
     if(I.Ap&&I.bat){if(u.tiredT>0){if(I.hum)AU.bad();}else{u.chargeT=3.5;AU.tone(420,.7,'sawtooth',.09,0,600,1500);msg(u.side,`${unitName(u)}: szarża słoni!`);}}}
   if(vx||vy){const f=Math.max(.25,passF('ele',u.x,u.y)),nx=u.x+vx*f*dt,ny=clamp(u.y+vy*f*dt,34,H-12);
     const ok=(X,Y)=>{const t=tAt(X,Y);if(u.panicT>0&&(X<4||X>W-4))return true;if(t===T.WATER)return I.hum&&u.panicT<=0;return passF('ele',X,Y)>0;};
