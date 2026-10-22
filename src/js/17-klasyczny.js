@@ -75,7 +75,7 @@ function updBullets(dt){
     let kill=b.left<=0||b.x<-5||b.x>W+5||b.y<28||b.y>H;
     const t=tAt(b.x,b.y),ti=Math.floor(b.y/TS)*GW+Math.floor(b.x/TS);
     if(ti!==b.ti){b.ti=ti;const O=OBST[t];if(O&&b.dist>14&&R()<O.stop*(b.boom&&O.soft?.5:1)){kill=true;obstacleHit(b.x,b.y,BULLET_DMG[b.kind]||1,b.src);}}
-    if(!kill&&G.era==='ww2'&&smokeAt(b.x,b.y)>3&&R()<dt*5)kill=true;
+    if(!kill&&G.era==='ww2'&&smokeAt(b.x,b.y)>3&&R()<dt*9)kill=true;
     if(!kill)for(const e of units){if(e.side===b.side||e.dead||e.gone)continue;if(Math.abs(e.y-b.y)>80||Math.abs(e.x-b.x)>80)continue;
       if(e.type==='tank'){if(Math.abs(e.x-b.x)<13&&Math.abs(e.y-b.y)<7){kill=true;if(b.ap)tankHit(e,(typeof b.ap==='function'?b.ap(b):b.ap)*eff(b.src,e.key)*evade(e),b.side,b.x-b.vx,b.y-(b.vy||0));else{parts.push({k:'spark',x:b.x,y:b.y-8,vx:-b.vx*.05,vy:-20,life:0,max:.2});}break;}continue;}
       if(e.type==='ele'){if(Math.abs(e.x-b.x)<11&&Math.abs(e.y-b.y)<6){kill=true;const m=e.men.find(q=>q.alive);if(m){if(b.kind==='pilum'&&R()<.4)elePanic(e);killMan(e,m,b.boom?'ball':'shot');}break;}continue;}
@@ -83,6 +83,7 @@ function updBullets(dt){
       for(const m of e.men){if(!m.alive||(b.hit&&b.hit.has(m)))continue;const ty=e.type==='cav'?5:3.5;
         if(b.sup&&e.type==='inf'&&Math.abs(m.y-b.y)<10&&Math.abs(m.x-b.x)<7)e.supT=2.5;
         if(Math.abs(m.y-b.y)<=ty&&Math.abs(m.x-b.x)<=5){
+          if(e.post){kill=true;if(b.boom||b.kind==='atr')postHit(e.post,b.boom?1:.5,b.side);else dustAt(b.x,b.y-6,1,'200,190,160');break;}
           if(e.key==='leg'&&e.rf==='testudo'&&isFront(e,b.x-b.vx)){
             if(b.kind==='pilum'){kill=true;if(R()<.5){e.rf='line';e.formT=.8;msg(e.side,`${unitName(e)}: pilum rozbija żółwia!`);}break;}
             if(R()>.1){kill=true;dustAt(b.x,b.y-6,1,'200,190,160');break;}}
@@ -97,7 +98,7 @@ const _updBullets1=updBullets;updBullets=function(dt){const n=Math.max(1,Math.ce
 let clMeleeT=0;
 function clStrike(a,b,m,o,d){
   if(b.type==='tank')return 0;
-  if(a.type==='tank')return a.moving&&d<8&&!b.prone?.14:0;
+  if(a.type==='tank')return a.moving&&d<8&&!b.prone&&!b.post?.14:0;
   if(a.type==='ele')return a.chargeT>0||a.panicT>0?.5:.15;
   let p=0;
   if(a.type==='cav'){
@@ -200,10 +201,11 @@ function clAutoSel(p){if(clSel(p))return;const L=clOrder(p);const f=L.find(u=>kd
 function clCycle(p,d){const L=clOrder(p);if(!L.length)return;let i=L.findIndex(u=>u.id===G.csel[p]);i=(i+d+L.length)%L.length;G.csel[p]=L[i].id;AU.ui();}
 function clPick(p,letter){const L=clOrder(p).filter(u=>kdOf(u).pick===letter);if(!L.length){AU.bad();return;}const cur=L.findIndex(u=>u.id===G.csel[p]);G.csel[p]=L[(cur+1)%L.length].id;AU.ui();}
 function clPlayer(p){const c=input.ctl[p];
-  if(c.p.lb||c.p.left)clCycle(p,-1);if(c.p.rb||c.p.right)clCycle(p,1);
+  const ww2=G.era==='ww2';if(c.p.lb||(c.p.left&&!ww2))clCycle(p,-1);if(c.p.rb||(c.p.right&&!ww2))clCycle(p,1);
+  if(ww2&&G.state==='battle'){if(c.p.left)callSmoke(p,clSel(p));if(c.p.right)callSupply(p,clSel(p));}
   if(c.p.x)clPick(p,'x');if(c.p.y)clPick(p,'y');if(c.p.b)clPick(p,'b');
   if(c.p.lt&&G.state==='battle'&&FAC[p].air){const u=clSel(p);callAir(p,u?u.y:H/2);}
-  if((c.p.down||c.p.up)&&G.state==='battle'){const u=clSel(p);if(u&&kdOf(u).prone)setProne(u,!!c.p.down);}
+  if((c.p.down||c.p.up)&&G.state==='battle'){const u=clSel(p);if(u&&u.post){if(c.p.up)leavePost(u);}else if(u&&kdOf(u).prone)setProne(u,!!c.p.down);}
   if(c.p.start&&G.state==='battle'){G.state='pause';G.pauseSel=0;AU.ui();}
   else if(c.p.start&&G.state==='deploy'){G.ready[p]=!G.ready[p];AU.ok2();}}
 /* --- komputer: steruje JEDNYM oddziałem naraz, z opóźnieniem reakcji --- */
@@ -229,6 +231,8 @@ function cpuClassic(u,dt){const c=G.cpu;const idle={x:0,y:0,A:false};if(c.react>
   const dir=clDir(u.side);const foes=units.filter(f=>f.side!==u.side&&!f.dead&&!f.gone&&f.state!=='enter');if(!foes.length)return idle;
   const kd=kdOf(u),ai=kd.ai,menOf=f=>f.men.filter(m=>m.alive);
   if(CPU[ai])return CPU[ai](u,dt,foes,dir,c);
+  if(ai==='flat'&&u.post)return idle0;
+  if(ai==='flat'&&POSTABLE.has(u.key)){const fp=freePostNear(u,280);if(fp&&!foes.some(f=>dist(f.x,f.y,u.x,u.y)<120)){const v=steer(u,fp.x,fp.y,dt);return{x:v[0],y:v[1],A:false};}}
   if(ai==='flat'){const rg=kd.range||CLS.inf.range;
     const t=foes.find(f=>f.type==='cav'&&f.state==='ride'&&Math.abs(f.x-u.x)<300)||bestTarget(u,foes.filter(f=>f.type!=='tank'))||nearestBy(foes,u);
     const[best,bdx]=alignPair(u,t,dir);
@@ -259,10 +263,10 @@ function cpuClassic(u,dt){const c=G.cpu;const idle={x:0,y:0,A:false};if(c.react>
   const wantEl=tg.type==='art'?52:18,ey=u.fixedElev?0:Math.abs(wantEl-u.elev)>3?(wantEl>u.elev?-1:1):0;
   const want=clamp(Math.abs(px-u.x)*(1+c.aimErr*.6),mn+5,mr-3);return{x:0,y:ey,A:ey!==0||u.aimR<want||u.aimDir<0};}
 /* --- przebieg --- */
-function clStart(){units=[];uid=1;bullets=[];G.evDone={};airReset();
+function clStart(){units=[];uid=1;bullets=[];G.evDone={};airReset();supportReset();
   G.res=[0,1].map(s=>{const r={};for(const k of TY(s))r[k]=G.army[s][k]||0;return r;});G.spawnQ=[];G.cavSlot=[0,0];
   for(const s of[0,1])for(const k of TY(s)){clSpawn(s,k,0);if(KD[k].two)clSpawn(s,k,1);}
-  if(MAP.def.mines)layMines();else G.mines=[];
+  if(MAP.def.mines)layMines();else G.mines=[];postsInit();
   G.csel=[0,0];G.cpu={t:0,hold:0,react:1.5,aimErr:0,lastA:false};G.state='battle';
   if(G.era==='ww2'){snapDeploy();G.state='deploy';G.deployT=40;G.ready=[false,isCPU(1)];msg(0,'Rozstaw oddziały w swojej strefie. Start = gotowi.');}
   else msg(0,'Oddziały wchodzą na pole. Sterujesz jednym naraz – X, Y, B lub LB/RB.');}
@@ -280,7 +284,7 @@ function clStep(dt){G.t+=dt;
   for(let p=0;p<2;p++){const u=clSel(p);if(!u||u.state==='enter')continue;
     if(isCPU(p))inputs[u.id]=cpuClassic(u,dt);else{const c=input.ctl[p];inputs[u.id]={x:c.lx,y:c.ly,A:acw?(c.b.a||c.b.rt):c.b.a,R:!acw&&c.b.rt,human:true};}}
   for(const u of units)clUpdate(u,dt,inputs[u.id]||null);
-  trackVel(dt);updBullets(dt);clMelee(dt);updProjs(dt);clSpawnTick(dt);eraTick3(dt);scenTick(dt);airTick(dt);
+  trackVel(dt);updBullets(dt);clMelee(dt);updProjs(dt);clSpawnTick(dt);eraTick3(dt);scenTick(dt);airTick(dt);postTick(dt);supplyTick(dt);
   for(let p=0;p<2;p++)clAutoSel(p);
   if(G.state==='battle')clVictory();}
 /* --- grafika trybu klasycznego --- */

@@ -27,8 +27,8 @@ addEventListener('popstate',()=>{try{history.pushState({bis:1},'');}catch(e){}
 addEventListener('beforeunload',e=>{if(G.state==='battle'||G.state==='deploy'||G.state==='pause'){e.preventDefault();e.returnValue='';}});
 const key=c=>!!KEYS[c];
 const KB=[
-  {mv:['KeyA','KeyD','KeyW','KeyS'],rot:['KeyZ','KeyC'],a:['KeyF','Space','GpA','PtrA'],b:['KeyG','GpB','NavB'],x:['KeyR','GpX'],y:['KeyT','GpY'],lb:['KeyQ','GpLB'],rb:['KeyE','GpRB'],lt:['ShiftLeft','GpLT'],rt:['KeyV','GpRT'],start:['Escape','Digit1','GpMenu','GpL3','GpR3'],up:['Digit2','GpUp'],down:['Digit3','GpDown'],left:['GpLeft'],right:['GpRight']},
-  {mv:['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'],rot:['Comma','Period'],a:['Enter','KeyK','Numpad0'],b:['KeyL'],x:['KeyJ'],y:['KeyI'],lb:['KeyU'],rb:['KeyO'],lt:['ShiftRight'],rt:['KeyM'],start:['Backspace','Digit0'],up:['KeyP'],down:['Semicolon']}
+  {mv:['KeyA','KeyD','KeyW','KeyS'],rot:['KeyZ','KeyC'],a:['KeyF','Space','GpA','PtrA'],b:['KeyG','GpB','NavB'],x:['KeyR','GpX'],y:['KeyT','GpY'],lb:['KeyQ','GpLB'],rb:['KeyE','GpRB'],lt:['ShiftLeft','GpLT'],rt:['KeyV','GpRT'],start:['Escape','Digit1','GpMenu','GpL3','GpR3'],up:['Digit2','GpUp'],down:['Digit3','GpDown'],left:['GpLeft','Digit4'],right:['GpRight','Digit5']},
+  {mv:['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'],rot:['Comma','Period'],a:['Enter','KeyK','Numpad0'],b:['KeyL'],x:['KeyJ'],y:['KeyI'],lb:['KeyU'],rb:['KeyO'],lt:['ShiftRight'],rt:['KeyM'],start:['Backspace','Digit0'],up:['KeyP'],down:['Semicolon'],left:['BracketLeft'],right:['BracketRight']}
 ];
 const BTN=['a','b','x','y','lb','rb','lt','rt','back','start','up','down','left','right','l3','r3'];
 const PADMAP={a:0,b:1,x:2,y:3,lb:4,rb:5,lt:6,rt:7,back:8,start:9,l3:10,r3:11,up:12,down:13,left:14,right:15};

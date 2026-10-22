@@ -32,12 +32,13 @@ function selectionGround(p){const u=selUnit(p);if(!u)return;const S=SIDE[p],r=SP
 function selectionLabel(p){const u=selUnit(p);if(!u)return;const[x,y]=P(u.x,u.y);txt(unitName(u),x,y-SPEC[u.type].r-(u.type==='cav'?14:9),14,SIDE[p].ui,'center');}
 // wspólne rysowanie żołnierzy (w obu trybach) – pozycje rzutowane
 function drawMenList(list){const items=[];
-  for(const u of list){if(u.gone)continue;if(u.type==='tank'||u.type==='ele'){if(!u.dead&&u.n>0)items.push({y:u.y+.5,u,tank:true});continue;}
+  for(const p of G.posts||[])items.push({y:p.y+.4,post:p});
+  for(const u of list){if(u.gone||u.post)continue;if(u.type==='tank'||u.type==='ele'){if(!u.dead&&u.n>0)items.push({y:u.y+.5,u,tank:true});continue;}
     let fi=-1,ai=0;u.men.forEach((m,i)=>{if(!m.alive||m.wrap)return;if(fi<0&&u.type!=='art'&&G.era!=='ww2')fi=i;items.push({y:m.y,u,m,flag:i===fi,idx:ai++});});
     if(u.type==='art'&&u.n>0&&!u.dead)items.push({y:u.y+.5,u,gun:true});}
   for(const d of G.dying)items.push({y:d.y-.2,dying:d});for(const h of G.loose)items.push({y:h.y,loose:h});
   items.sort((a,b)=>a.y-b.y);
-  for(const it of items){if(it.dying){DRAWU=null;drawDying(it.dying);continue;}if(it.tank){const[tx,ty]=P(it.u.x,it.u.y);if(it.u.type==='ele')drawElephant(it.u,tx,ty);else drawTank(it.u,tx,ty);continue;}if(it.loose){const h=it.loose,[hx,hy]=P(h.x,h.y);drawRider(hx,hy,0,h.right,h.anim,true,false,false,h.hc,false,false,-1,true);continue;}
+  for(const it of items){if(it.post){drawPost(it.post);continue;}if(it.dying){DRAWU=null;drawDying(it.dying);continue;}if(it.tank){const[tx,ty]=P(it.u.x,it.u.y);if(it.u.type==='ele')drawElephant(it.u,tx,ty);else drawTank(it.u,tx,ty);continue;}if(it.loose){const h=it.loose,[hx,hy]=P(h.x,h.y);drawRider(hx,hy,0,h.right,h.anim,true,false,false,h.hc,false,false,-1,true);continue;}
     const u=it.u;if(it.gun){const[gx,gy]=P(u.x,u.y);if(GUNDRAW[u.key])GUNDRAW[u.key](u,gx,gy);else drawGun(u,gx,gy);continue;}DRAWU=u;DRAWM=it.m;DRAWI=it.idx;const m=it.m,flash=u.hitFlash>.17,[sx,sy]=P(m.x,m.y);
     let right=Math.cos(u.fa)>=0;if(u.type==='inf'&&u.form==='sq')right=m.x>=u.x;
     if(u.type==='cav')drawRider(sx,sy,u.side,right,m.anim,m.mv>.2,u.charging,it.flag,m.hc,flash,u.lance,u.slashT>0?1-u.slashT/.4:-1,false,u.rearT>0);

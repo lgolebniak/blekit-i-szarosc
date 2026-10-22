@@ -55,9 +55,11 @@ function drawHelp(){panel(40,40,W-80,H-80,BRASS);const pg=G.helpPage||0;
    ww2:[['Lewy drążek','Wszyscy idą równolegle. Czołg jeździ w każdą stronę, ale strzela tylko w przód i po skosach. Działo i moździerz tylko góra–dół.','WASD','Strzałki'],
     ['A','Krótko = strzał na wprost, trzymaj = skos do 45° (drążek góra–dół), puść = strzał · Ckm: trzymaj = seria, drążek sieje na boki · Czołg: trzymaj = kierunek, drugie A = odległość · Moździerz: trzymaj = siła','F / Spacja','Enter / K'],
     ['RT','Piechota: trzymaj = granat (drążek: kierunek, pasek: odległość), 4–6 ludzi rzuca dwa · Czołg: km (przegrzewa się) · Moździerz: odłamkowy / dymny','V','M'],
-    ['Krzyżak ↓ / ↑','Piechota: padnij (kryją się, po chwili okopują, drążek = czołganie) / wstań. Leżących nie rozjedzie czołg, kule rzadko trafiają.','3 / 2','; / P'],['X / Y / B','Piechota, ckm, rusznica / czołg / działo i moździerz','R/T/G','J/I/L'],['LB / RB','Poprzedni / następny oddział','Q / E','U / O'],['Start / drążek','Rozstawienie: gotowi · w bitwie: pauza','Esc / 1','Backspace / 0'],
-    ['LT','Nalot: samolot leci na wysokości wybranego oddziału i bombarduje połowę wroga. Ckm może go zestrzelić.','L. Shift','P. Shift'],
-    ['Samoobrona','Oddziały bez sterowania same bronią się ogniem do 75% zasięgu (bez moździerza i działa).','','']],
+    ['Krzyżak ↓ / ↑','Piechota: padnij (kryją się, po chwili okopują, drążek = czołganie) / wstań. Leżących nie rozjedzie czołg, kule rzadko trafiają.','3 / 2','; / P'],['X / Y / B','Piechota, ckm, rusznica, snajper / czołg, ułani / działa','R/T/G','J/I/L'],['LB / RB','Poprzedni / następny oddział','Q / E','U / O'],['Start / drążek','Rozstawienie: gotowi · w bitwie: pauza','Esc / 1','Backspace / 0'],
+    ['Krzyżak ← / →','Zasłona dymna (3×) / zrzut zaopatrzenia – podejdź do skrzyni','4 / 5','[ / ]'],
+    ['Stanowiska','Piechota i snajper zajmują bunkier, okop, baterię, dom, wieżę. Kule nie szkodzą, wybuchy burzą (↑ wyjdź)','',''],
+    ['LT','Nalot na wysokości oddziału – bomby na połowę wroga, ckm może zestrzelić','L. Shift','P. Shift'],
+    ['Samoobrona','Oddziały bez sterowania same strzelają do 75% zasięgu','','']],
    pl17:[['Lewy drążek','Husaria stoi: góra–dół i powoli naprzód, bez cofania. W szarży: góra–dół, w tył = stój. Pikinierzy: A = piki w dół (stoją: na sztorc, idą: natarcie). Rajtaria: każdy kierunek.','WASD','Strzałki'],
     ['A','Husaria: szarża; bez kopii cięcie koncerzem (także w miejscu) · Piechota: salwa · Pikinierzy: piki w dół ↔ w górę · Rajtaria: pistolety · Działo: trzymaj = siła','F / Spacja','Enter / K'],
     ['RT','Husaria w szarży: linia ↔ klin','V','M'],
@@ -100,7 +102,7 @@ function drawArmy(){bgField();txt('Skład armii',W/2,46,38,INK,'center',true);tx
   for(let p=0;p<2;p++){const a=G.army[p],S=SIDE[p],x=p===0?20:490,y=82,w=450,h=430;panel(x,y,w,h,S.ui);
     if(S.name.length>10){txt(isCPU(p)?'Komputer':'Gracz '+(p+1),x+16,y+18,15,DIM);txt(S.name,x+16,y+40,22,S.ui,'left',true);}
     else txt(`${isCPU(p)?'Komputer':'Gracz '+(p+1)} · ${S.name}`,x+16,y+32,24,S.ui,'left',true);
-    const TP=TY(p),sum=sumArmy(a,p),RH=TP.length>5?54:TP.length>4?64:80,SC=TP.length>5?1.6:2;txt(`Wzorzec [X]: ${PR(p)[a.preset].n}`,x+w-16,y+20,15,DIM,'right');txt(`Oddziały ${sum}/${TOT(p)}`,x+w-16,y+37,15,sum===TOT(p)?'#9fe07a':'#e0a060','right');
+    const TP=TY(p),sum=sumArmy(a,p),RH=Math.min(80,Math.floor((h-102)/TP.length)),SC=TP.length>6?1.4:TP.length>5?1.6:2;txt(`Wzorzec [X]: ${PR(p)[a.preset].n}`,x+w-16,y+20,15,DIM,'right');txt(`Oddziały ${sum}/${TOT(p)}`,x+w-16,y+37,15,sum===TOT(p)?'#9fe07a':'#e0a060','right');
     TP.forEach((t,i)=>{const ry=y+46+i*RH,on=a.row===i&&!a.ready&&!isCPU(p),kd=KD[t];
       if(on){ctx.fillStyle='rgba(255,255,255,.06)';ctx.fillRect(x+8,ry,w-16,RH-4);ctx.fillStyle=S.ui;ctx.fillRect(x+8,ry,3,RH-4);}
       ctx.save();ctx.translate(x+40,ry+RH-(SC<2?12:18));ctx.scale(SC,SC);const an=G.t*6;
@@ -109,7 +111,7 @@ function drawArmy(){bgField();txt('Skład armii',W/2,46,38,INK,'center',true);tx
       else if(kd.base==='tank')drawTank(fake,0,0);else if(kd.base==='ele')drawElephant(fake,0,0);else if(GUNDRAW[t])GUNDRAW[t](fake,0,0);else drawGun(fake);
       DRAWU=null;ctx.restore();
       const info=INFO(p)[t],small=RH<80;txt(info[0],x+78,ry+(small?19:22),small?20:22,INK);txt(info[1],x+78,ry+(small?35:40),16,'#cfc6a8');if(RH>=60)wrap(info[2],x+78,ry+(small?51:57),small?290:270,15,15,DIM);
-      txt(on?'◀':'',x+w-96,ry+RH/2+6,26,BRASS,'center');txt(String(a[t]||0),x+w-64,ry+RH/2+10,40,INK,'center',true);txt(on?'▶':'',x+w-32,ry+RH/2+6,26,BRASS,'center');});
+      txt(on?'◀':'',x+w-96,ry+RH/2+6,26,BRASS,'center');txt(String(a[t]||0),x+w-64,ry+RH/2+(RH<50?8:10),Math.min(40,RH-6),INK,'center',true);txt(on?'▶':'',x+w-32,ry+RH/2+6,26,BRASS,'center');});
     const ry=y+h-52,on=a.row===TP.length||a.ready;
     ctx.fillStyle=a.ready?'rgba(120,200,110,.25)':on?'rgba(201,162,74,.25)':'rgba(255,255,255,.05)';ctx.fillRect(x+16,ry,w-32,40);
     txt(a.ready?'GOTOWI DO BOJU':'Gotowi [A / Start]',x+w/2,ry+29,26,a.ready?'#9fe07a':on?INK:DIM,'center',true);}

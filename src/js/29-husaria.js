@@ -173,6 +173,11 @@ const _evadePL=evade;evade=function(e,m){const v=_evadePL(e,m);return e.key==='h
 // przewagi epoki: każda klasa 2 przewagi i 2 słabości
 Object.assign(UCLASS,{hus:'hcav',pik:'pike',haj:'shot',mus:'shot',strz:'shot',jan:'shot',pan:'lcav',sip:'lcav',boj:'lcav',rajt:'skir',dz:'gun'});
 Object.assign(BEATS,{hcav:['shot','lcav'],pike:['hcav','lcav'],shot:['pike','skir'],lcav:['skir','gun'],skir:['pike','gun'],gun:['hcav','shot']});
+// 1939: snajper i ułani (26c) – przypisane tutaj, bo UCLASS/BEATS/CHIP_ALIAS powstają dopiero w 27 i 29
+Object.assign(UCLASS,{snp:'snp',kaw:'kaw'});
+// każda klasa nadal ma tyle samo przewag co słabości: snajper zdejmuje ckm i piechotę, ułani rozbijają moździerze i snajperów
+Object.assign(BEATS,{kaw:['snp','mor'],snp:['mg','rif'],mg:[...BEATS.mg,'kaw'],rif:[...BEATS.rif,'kaw'],mor:[...BEATS.mor,'snp']});
+Object.assign(CHIP_ALIAS,{snp:'inf',kaw:'cav'});
 
 /* --- wyłomy: kula armatnia i hajducy łamią płoty i palisady (wyłom na 3 pola) --- */
 const _breakPalPL=breakPalisade;

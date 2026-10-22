@@ -37,7 +37,7 @@ function airTick(dt){if(!G.planes)return;
 // rysowanie: samoloty i spadające bomby nad polem (z cieniem na ziemi)
 function eraSprites(){if(!G.planes)return;
   for(const b of G.bombs){const[x,y]=P(b.x,b.y);ctx.fillStyle='rgba(0,0,0,.3)';ctx.fillRect(Math.round(x)-1,Math.round(y),3,1);ctx.fillStyle='#2a2a26';ctx.fillRect(Math.round(x),Math.round(y-b.h)-2,2,4);}
-  for(const pl of G.planes)drawPlane(pl);}
+  for(const pl of G.planes)drawPlane(pl);drawCrates();}
 function drawPlane(pl){const[gx,gy]=P(pl.x,pl.y),S=SIDE[pl.side],c=pl.down?'#3a3630':(S.veh||'#6a6a5a');
   ctx.fillStyle=`rgba(0,0,0,${Math.max(.08,.3-pl.alt*.002)})`;ctx.fillRect(Math.round(gx)-11,Math.round(gy),22,2);ctx.fillRect(Math.round(gx)-2,Math.round(gy)-3,5,8);
   const x=Math.round(gx),y=Math.round(gy-pl.alt),r=spr(x,y,pl.dir>0);
@@ -47,4 +47,4 @@ function drawPlane(pl){const[gx,gy]=P(pl.x,pl.y),S=SIDE[pl.side],c=pl.down?'#3a3
   if(S.helm==='de'){r(-7,-2,1,3,'#111');r(-8,-1,3,1,'#111');}else{r(-8,-2,2,1,'#fff');r(-6,-2,2,1,'#d4213d');r(-8,-1,2,1,'#d4213d');r(-6,-1,2,1,'#fff');}
   if(pl.down&&R()<.5){ctx.fillStyle='#ff9a40';ctx.fillRect(x-2,y-3,3,3);}}
 function airHUD(){if(!G.air)return;for(let p=0;p<2;p++){if(!FAC[p].air)continue;const n=G.air[p],cd=Math.max(0,Math.ceil(G.airCd[p]-G.t));
-  txt(`Lotnictwo ×${n}${n&&cd?` (${cd} s)`:''}${humanOf(p)>=0?' · LT':''}`,p?W-10:10,44,15,n?SIDE[p].ui:'#6a625a',p?'right':'left');}}
+  txt(`Lotnictwo ×${n}${n&&cd?` (${cd} s)`:''}${humanOf(p)>=0?' · LT':''}${G.smoke?` · Dym ×${G.smoke[p]}${humanOf(p)>=0?' ←':''} · Zrzut ×${G.supply[p]}${humanOf(p)>=0?' →':''}`:''}`,p?W-10:10,44,15,n?SIDE[p].ui:'#6a625a',p?'right':'left');}}

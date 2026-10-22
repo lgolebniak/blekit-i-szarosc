@@ -25,7 +25,7 @@ function throwGren(u,r,a){const al=u.men.filter(m=>m.alive),n=Math.min(u.gren||0
   for(let i=0;i<n;i++){const m=al[Math.floor(i*al.length/n)],rr=r*(1+(R()-.5)*.12),tx=u.x+cx*rr+(R()-.5)*6,ty=u.y+cy*rr+(n>1?(i?7:-7):0)+(R()-.5)*5;
     projs.push({kind:'gren',x:m.x,y:m.y,sx:m.x,sy:m.y,tx,ty,t:0,T:.45+rr/300,H:14+rr*.15,h:0,a:0,bounce:0,side:u.side,src:u.key,hit:new Set(),low:false});}
   AU.burst(.2,1200,'bandpass',1,.15,AU.pan(u.x));return true;}
-BEH.rif=function(u,dt,I){const{x,y}=I,sp=26*(G.weather==='rain'?.9:1)*(u.supT>0?.4:1)*(u.prone?.3:1),a=coneFire(u,I,dt);
+BEH.rif=function(u,dt,I){if(u.post)return postBeh(u,dt,I);const{x,y}=I,sp=26*(G.weather==='rain'?.9:1)*(u.supT>0?.4:1)*(u.prone?.3:1),a=coneFire(u,I,dt);
   if(u.prone){const moving=Math.abs(x)>.2||Math.abs(y)>.2;u.dugT=moving&&!I.A&&!u.gAim?0:(u.dugT||0)+dt;if(!u.dug&&u.dugT>4){u.dug=true;msg(u.side,`${unitName(u)} okopali się.`);}else if(u.dugT===0)u.dug=false;}
   if((I.A||u.gAim)&&I.bat)clMoveMen(u,0,0,dt,false,1,I.hum);
   else{const horiz=Math.abs(x)>.3&&Math.abs(x)>=Math.abs(y),vert=Math.abs(y)>.3&&Math.abs(y)>Math.abs(x);
@@ -52,7 +52,8 @@ function nearBroken(x,y){if(!MAP.broken)return false;const tx=Math.floor(x/TS),t
 /* --- wybuchy, pancerz, dym --- */
 function blast(x,y,Rr,k,side,src){for(let i=0;i<10;i++)parts.push({k:'dirt',x,y,z:0,vx:(R()-.5)*50,vy:(R()-.5)*30,vz:50+R()*60,life:0,max:.8,c:R()<.5?'#5a4630':'#7a6446'});
   parts.push({k:'flash',x,y:y-4,life:0,max:.1,big:1});addSmoke(x,y-3,2,false);const t=tAt(x,y);if(t!==T.WATER&&t!==T.BRIDGE&&t!==T.FORD&&Rr>=10)decalCrater(x,y);AU.impact(x);
-  for(const e of units){if(e.dead||e.gone||e.type==='tank'||dist(x,y,e.x,e.y)>Rr+50)continue;
+  for(const p of G.posts||[])if(!p.dead&&dist(x,y,p.x,p.y)<Rr+10)postHit(p,src==='rif'?.5:1,side);
+  for(const e of units){if(e.dead||e.gone||e.type==='tank'||e.post||dist(x,y,e.x,e.y)>Rr+50)continue;
     const kp=e.prone&&!HEAVY.has(src)?(e.dug?.4:.6):1;
     for(const m of e.men){if(!m.alive)continue;const d=dist(x,y,m.x,m.y);if(d<Rr&&R()<k*kp*(1-.4*d/Rr)*eff(src,e.key)){killMan(e,m,'ball');if(side>=0&&e.side!==side)G.stats[side].hits++;}}}
   for(let dy=-Rr;dy<=Rr;dy+=TS)for(let dx=-Rr;dx<=Rr;dx+=TS)if(tAt(x+dx,y+dy)===T.WIRE)crushWire(x+dx,y+dy);

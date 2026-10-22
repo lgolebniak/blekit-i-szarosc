@@ -30,7 +30,7 @@ function cpuGren(u,foes,dir){if(u.cd2>0||!(u.gren>0))return false;let best=null;
     const s=f.type==='tank'?100:f.type==='inf'&&f.n>=4&&dx>50?40:0;if(s&&(!best||s>best.s))best={s,dx,dy};}
   if(!best)return false;return throwGren(u,Math.min(GREN.max,Math.hypot(best.dx,best.dy)),clamp(Math.atan2(best.dy,best.dx),-CONE,CONE));}
 const AUTO={
-  rif(u,dt){// samoobrona: padnij przed czołgiem i pod ogniem, granat w czołg tuż przed oddziałem
+  rif(u,dt){if(u.post)return;// samoobrona: padnij przed czołgiem i pod ogniem, granat w czołg tuż przed oddziałem
     if(kdOf(u).prone){const tk=units.some(e=>e.side!==u.side&&e.type==='tank'&&!e.dead&&!e.gone&&dist(e.x,e.y,u.x,u.y)<200);
       if((tk||u.supT>0)&&!u.prone){setProne(u,true);u.autoProne=true;u.calmT=0;}
       else if(u.prone&&u.autoProne&&!tk&&u.supT<=0){u.calmT=(u.calmT||0)+dt;if(u.calmT>5){setProne(u,false);u.autoProne=false;}}else u.calmT=0;}
